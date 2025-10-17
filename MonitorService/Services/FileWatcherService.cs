@@ -4,13 +4,13 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-public class FolderMonitorService : BackgroundService
+public class FileWatcherService : BackgroundService
 {
-    private readonly ILogger<FolderMonitorService> _logger;
+    private readonly ILogger<FileWatcherService> _logger;
     private FileSystemWatcher? _watcher;
     private readonly string _path = @"C:\Integration\Drop";
 
-    public FolderMonitorService(ILogger<FolderMonitorService> logger)
+    public FileWatcherService(ILogger<FileWatcherService> logger)
     {
         _logger = logger;
     }
