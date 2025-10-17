@@ -1,1 +1,312 @@
-VB6/LegacyBridge.vbw
+# ====================================
+# Legacy Bridge VB6 to C# Modernization
+# ====================================
+
+# ====================================
+# VB6 / Visual Basic 6
+# ====================================
+# VB6 workspace files (binary, user-specific)
+*.vbw
+
+# VB6 compiled binaries
+*.exe
+*.dll
+*.ocx
+
+# VB6 backup and temporary files
+*.bak
+*.tmp
+*.log
+
+# VB6 Form binary files (these are usually regenerated)
+# Uncomment if you want to exclude them
+# *.frx
+
+# ====================================
+# .NET / C# / ASP.NET Core
+# ====================================
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio cache/options directory
+.vs/
+
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Mono Auto Generated Files
+mono_crash.*
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+publish/
+out/
+
+# .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# StyleCop
+StyleCopReport.xml
+
+# Files built by Visual Studio
+*_i.c
+*_p.c
+*_h.h
+*.ilk
+*.meta
+*.obj
+*.iobj
+*.pch
+*.pdb
+*.ipdb
+*.pgc
+*.pgd
+*.rsp
+*.sbr
+*.tlb
+*.tli
+*.tlh
+*.tmp_proj
+*_wpftmp.csproj
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svclog
+*.scc
+
+# NuGet
+*.nupkg
+*.snupkg
+**/packages/*
+!**/packages/build/
+*.nuget.props
+*.nuget.targets
+.nuget/
+
+# ====================================
+# Docker
+# ====================================
+# Docker volumes and data
+docker-compose.override.yml
+.dockerignore
+
+# ====================================
+# Database / PostgreSQL
+# ====================================
+# PostgreSQL backup files
+*.dump
+*.sql.backup
+*.backup
+
+# Database connection files (if any)
+*.db
+*.sqlite
+*.sqlite3
+
+# ====================================
+# IDE and Editors
+# ====================================
+# JetBrains Rider
+.idea/
+*.sln.iml
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.sln.docstates
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# Local History for Visual Studio Code
+.history/
+
+# Built Visual Studio Code Extensions
+*.vsix
+
+# ====================================
+# Operating System
+# ====================================
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ====================================
+# Logs and Temporary Files
+# ====================================
+*.log
+*.tmp
+*.temp
+logs/
+*.log.*
+
+# Serilog logs
+Logs/
+logs/
+
+# ====================================
+# Application Specific
+# ====================================
+# Configuration files with secrets (never commit these!)
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Local.json
+*.secrets.json
+secrets/
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.production
+*.env
+
+# Monitor Service specific
+MonitorService/logs/
+MonitorService/Logs/
+
+# Integration folder (file system watcher target)
+Integration/
+C:/Integration/
+
+# ====================================
+# Testing
+# ====================================
+# Test Results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.trx
+*.coverage
+*.coveragexml
+
+# Coverage reports
+coverage/
+*.lcov
+*.opencover.xml
+
+# ====================================
+# Package Managers
+# ====================================
+# npm
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Yarn
+.yarn/
+.pnp.*
+
+# ====================================
+# Miscellaneous
+# ====================================
+# Backup files
+*.bak
+*.swp
+*.swo
+*~
+
+# Archives
+*.zip
+*.tar
+*.gz
+*.rar
+*.7z
+
+# Compiled source
+*.com
+*.class
+*.o
+*.so
+
+# Certificates and keys (NEVER commit these!)
+*.pfx
+*.p12
+*.key
+*.pem
+*.crt
+*.cer
+
+# ====================================
+# Project Specific Exclusions
+# ====================================
+# Keep important configuration templates
+!appsettings.json
+!appsettings.Development.json.template
+!docker-compose.yml
+
+# Keep database scripts (these should be versioned)
+!Db/*.sql
+
+# Keep VB6 project files (but not workspace)
+!VB6/*.vbp
+!VB6/*.frm
+!VB6/*.bas
+!VB6/*.cls
