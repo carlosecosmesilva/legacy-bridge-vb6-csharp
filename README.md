@@ -51,18 +51,45 @@ Modernização que integra um sistema legado VB6 com uma API moderna em C# e ban
 
 ## Requisitos
 
--   Windows 10/11
--   Docker Desktop (para ambiente com containers)
--   .NET SDK 8.x
--   VB6 IDE (opcional, para manutenção do legado)
--   Git
+    Visual Studio 2022 (recomendado) ou Visual Studio Code
 
 ## Comece rápido
+
+### Opção 1: Visual Studio (Recomendado)
 
 1. Clone o repositório
 
 ```bash
-git clone https://github.com/seu-usuario/legacy-bridge-vb6-csharp.git
+git clone https://github.com/carlosecosmesilva/legacy-bridge-vb6-csharp.git
+cd legacy-bridge-vb6-csharp
+```
+
+2. Abra a Solution
+
+```powershell
+# Abrir no Visual Studio
+start LegacyBridge.sln
+
+# Ou via linha de comando
+devenv LegacyBridge.sln
+```
+
+3. Restaurar pacotes NuGet
+
+-   Visual Studio restaura automaticamente
+-   Ou clique direito na Solution → **Restore NuGet Packages**
+
+4. Executar
+
+-   Pressione `F5` para debug
+-   Ou `Ctrl+F5` para executar sem debug
+
+### Opção 2: Docker (Rápido)
+
+1. Clone o repositório
+
+```bash
+git clone https://github.com/carlosecosmesilva/legacy-bridge-vb6-csharp.git
 cd legacy-bridge-vb6-csharp
 ```
 
@@ -195,18 +222,11 @@ GET /health
 -   Serilog configurado para Console e arquivo (ajustável em appsettings).
 -   HealthChecks expostos em /health para uso com monitoramento e load balancers.
 
-## Desenvolvimento
-
--   Estilo: Controllers enxutos, regras no Service, acesso a dados no Repository.
--   Preferência por DTOs em Models/ para isolar contrato da API.
--   Acesso a dados via queries/funções PostgreSQL (sem EF Core), priorizando desempenho e simplicidade.
-
 ## CI/CD e Operação
 
--   Consulte:
-    -   docs/ARQUITETURA.md
-    -   docs/ci-cd.md
-    -   docs/runbook.md
+    -   [docs/arquitetura.md](docs/arquitetura.md)
+    -   [docs/runbook.md](docs/runbook.md)
+    -   [docs/ci-cd.md](docs/ci-cd.md)
 
 ## Troubleshooting
 
