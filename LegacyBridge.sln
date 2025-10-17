@@ -1,0 +1,62 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Api", "Api\Api.csproj", "{A8E5B6C7-2D4F-4E8A-9B3C-1D5F6E7A8B9C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonitorService", "MonitorService\MonitorService.csproj", "{B9F6C7D8-3E5A-4F9B-AC4D-2E6F7E8B9CAD}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{C1D2E3F4-5A6B-7C8D-9E0F-1A2B3C4D5E6F}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+		GUIA_EXECUCAO.md = GUIA_EXECUCAO.md
+		IMPLEMENTACAO.md = IMPLEMENTACAO.md
+		docker-compose.yml = docker-compose.yml
+		.gitignore = .gitignore
+		LICENSE = LICENSE
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{D2E3F4A5-6B7C-8D9E-0F1A-2B3C4D5E6F7A}"
+	ProjectSection(SolutionItems) = preProject
+		docs\arquitetura.md = docs\arquitetura.md
+		docs\runbook.md = docs\runbook.md
+		docs\ci-cd.md = docs\ci-cd.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Database", "Database", "{E3F4A5B6-7C8D-9E0F-1A2B-3C4D5E6F7A8B}"
+	ProjectSection(SolutionItems) = preProject
+		Db\001_create_schema.sql = Db\001_create_schema.sql
+		Db\002_create_customers_table.sql = Db\002_create_customers_table.sql
+		Db\003_create_products_table.sql = Db\003_create_products_table.sql
+		Db\004_create_search_function.sql = Db\004_create_search_function.sql
+		Db\005_inserts_schema.sql = Db\005_inserts_schema.sql
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{F4A5B6C7-8D9E-0F1A-2B3C-4D5E6F7A8B9C}"
+	ProjectSection(SolutionItems) = preProject
+		.github\copilot-instructions.md = .github\copilot-instructions.md
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A8E5B6C7-2D4F-4E8A-9B3C-1D5F6E7A8B9C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A8E5B6C7-2D4F-4E8A-9B3C-1D5F6E7A8B9C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A8E5B6C7-2D4F-4E8A-9B3C-1D5F6E7A8B9C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A8E5B6C7-2D4F-4E8A-9B3C-1D5F6E7A8B9C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B9F6C7D8-3E5A-4F9B-AC4D-2E6F7E8B9CAD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B9F6C7D8-3E5A-4F9B-AC4D-2E6F7E8B9CAD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B9F6C7D8-3E5A-4F9B-AC4D-2E6F7E8B9CAD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B9F6C7D8-3E5A-4F9B-AC4D-2E6F7E8B9CAD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1A2B3C4D-5E6F-7A8B-9C0D-1E2F3A4B5C6D}
+	EndGlobalSection
+EndGlobal
