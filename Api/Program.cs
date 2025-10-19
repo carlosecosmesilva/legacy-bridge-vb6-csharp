@@ -1,7 +1,7 @@
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+using Api.Data;
+using Api.Repositories.Interfaces;
+using Api.Services.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? Environments.Production;
@@ -27,9 +27,34 @@ try
     });
 
     builder.Configuration.AddConfiguration(configuration);
-
     builder.Host.UseSerilog();
 
+    // Connection string
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    if (!string.IsNullOrWhiteSpace(connectionString))
+    {
+        // Registrar DbContext apontando para PostgreSQL
+        builder.Services.AddDbContext<AppDbContext>(options =>
+            options.UseNpgsql(connectionString));
+
+        // Health check PostgreSQL
+        builder.Services.AddHealthChecks()
+               .AddNpgSql(connectionString, name: "PostgreSQL");
+    }
+    else
+    {
+        Log.Warning("Connection string 'DefaultConnection' não encontrada. DbContext e HealthCheck não registrados.");
+    }
+
+    // Registrar repositórios
+    builder.Services.AddScoped<ICustomerRepository, Api.Repositories.CustomerRepository>();
+    builder.Services.AddScoped<IProductRepository, Api.Repositories.ProductRepository>();
+
+    // Registrar serviços
+    builder.Services.AddScoped<ICustomerService, Api.Services.CustomerService>();
+    builder.Services.AddScoped<IProductService, Api.Services.ProductService>();
+
+    // Controllers, Swagger e CORS
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(c =>
@@ -38,13 +63,23 @@ try
         {
             Title = "Legacy Bridge API",
             Version = "v1",
-            Description = "API para modernização gradual VB6 → C# + PostgreSQL"
+            Description = "API para modernização gradual VB6 → C# + PostgreSQL",
+            Contact = new Microsoft.OpenApi.Models.OpenApiContact
+            {
+                Name = "Legacy Bridge Team",
+                Email = "support@legacybridge.com"
+            }
         });
+
+        var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+        var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+        if (File.Exists(xmlPath))
+        {
+            c.IncludeXmlComments(xmlPath);
+        }
     });
 
-    var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-        ?? new[] { "http://localhost" };
-
+    var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? new[] { "http://localhost" };
     builder.Services.AddCors(options =>
     {
         options.AddDefaultPolicy(policy =>
@@ -54,17 +89,6 @@ try
                   .AllowAnyMethod();
         });
     });
-
-    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    var healthChecksBuilder = builder.Services.AddHealthChecks();
-    if (!string.IsNullOrWhiteSpace(connectionString))
-    {
-        healthChecksBuilder.AddNpgSql(connectionString!, name: "PostgreSQL");
-    }
-    else
-    {
-        Log.Warning("Connection string 'DefaultConnection' não encontrada. Health check PostgreSQL não registrado.");
-    }
 
     var app = builder.Build();
 
@@ -79,25 +103,21 @@ try
     }
 
     app.UseSerilogRequestLogging();
+    app.UseMiddleware<Api.Middleware.ExceptionHandlingMiddleware>();
     app.UseCors();
     app.UseAuthorization();
     app.MapControllers();
     app.MapHealthChecks("/health");
 
+    // Endpoint de status
     app.MapGet("/", () => new
     {
         name = "Legacy Bridge API",
         version = "1.0",
         status = "Running",
-        environment = environment,
-        endpoints = new[]
-        {
-            "/health",
-            "/api/products",
-            "/api/customers/search?term={searchTerm}",
-            "/swagger"
-        }
-    });
+        environment,
+        endpoints = Endpoints()
+    }).ExcludeFromDescription();
 
     Log.Information("API configured successfully. Listening on configured ports...");
 
@@ -112,3 +132,14 @@ finally
 {
     Log.CloseAndFlush();
 }
+
+static string[] Endpoints() => new[]
+{
+    "/health",
+    "/api/products",
+    "/api/customers/search?term={searchTerm}",
+    "/swagger"
+};
+
+// Classe Program pública para testes
+public partial class Program { }

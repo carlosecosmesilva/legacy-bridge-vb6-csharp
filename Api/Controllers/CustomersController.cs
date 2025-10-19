@@ -1,130 +1,125 @@
+using Api.Models;
+using Api.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Npgsql;
 
 namespace Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class CustomersController : ControllerBase
+public class CustomersController(ICustomerService customerService, ILogger<CustomersController> logger) : ControllerBase
 {
-    private readonly IConfiguration _cfg;
-    private readonly ILogger<CustomersController> _logger;
-
-    public CustomersController(IConfiguration cfg, ILogger<CustomersController> logger)
-    {
-        _cfg = cfg;
-        _logger = logger;
-    }
+    private readonly ICustomerService _customerService = customerService;
+    private readonly ILogger<CustomersController> _logger = logger;
 
     /// <summary>
-    /// Busca clientes por nome (ILIKE case-insensitive) - Requisitos VB6-b e C#-b
+    /// Busca um cliente pelo nome (parcial ou completo)
     /// </summary>
+    /// <param name="term">Termo de busca para o cliente</param>
+    /// <param name="limit">Limite de resultados a serem retornados</param>
+    /// <param name="offset">Deslocamento para paginação</param>
+    /// <returns>Resultado da busca de clientes</returns>
     [HttpGet("search")]
     public async Task<IActionResult> Search(
         [FromQuery] string term,
         [FromQuery] int limit = 50,
         [FromQuery] int offset = 0)
     {
-        try
+        var request = new CustomerSearchRequest
         {
-            if (limit <= 0 || limit > 1000)
-                return BadRequest(new { error = "Limit must be between 1 and 1000" });
+            Term = term ?? string.Empty,
+            Limit = limit,
+            Offset = offset
+        };
 
-            if (offset < 0)
-                return BadRequest(new { error = "Offset must be >= 0" });
+        var result = await _customerService.SearchByNameAsync(request);
 
-            var connString = _cfg.GetConnectionString("DefaultConnection");
-
-            using var conn = new NpgsqlConnection(connString);
-            await conn.OpenAsync();
-
-            // Chama a funÃ§Ã£o PostgreSQL que usa ILIKE
-            using var cmd = new NpgsqlCommand(
-                "SELECT * FROM search_customers_by_name(@term, @limit, @offset)",
-                conn);
-            cmd.Parameters.AddWithValue("term", term ?? string.Empty);
-            cmd.Parameters.AddWithValue("limit", limit);
-            cmd.Parameters.AddWithValue("offset", offset);
-
-            var customers = new List<object>();
-            using var reader = await cmd.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
-            {
-                customers.Add(new
-                {
-                    id = reader.GetInt64(0),
-                    name = reader.GetString(1),
-                    document = reader.IsDBNull(2) ? null : reader.GetString(2),
-                    status = reader.GetString(3)
-                });
-            }
-
-            _logger.LogInformation(
-                "Customer search executed: Term='{Term}', ResultCount={Count}",
-                term, customers.Count);
-
-            return Ok(new
-            {
-                data = customers,
-                pagination = new
-                {
-                    limit,
-                    offset,
-                    count = customers.Count
-                }
-            });
-        }
-        catch (Exception ex)
+        if (!result.Success)
         {
-            _logger.LogError(ex, "Error searching customers with term: {Term}", term);
-            return StatusCode(500, new { error = "Internal server error" });
+            return result.Message?.Contains("not found") == true
+                ? NotFound(result)
+                : BadRequest(result);
         }
+
+        return Ok(result);
     }
 
     /// <summary>
-    /// Retorna cliente por ID
+    /// Retorna um cliente pelo ID
     /// </summary>
+    /// <param name="id">Id do cliente a ser buscado</param>
+    /// <returns>Resultado da busca do cliente</returns>
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(long id)
     {
-        try
+        var result = await _customerService.GetByIdAsync(id);
+
+        if (!result.Success)
         {
-            if (id <= 0)
-                return BadRequest(new { error = "Invalid customer ID" });
-
-            var connString = _cfg.GetConnectionString("DefaultConnection");
-
-            using var conn = new NpgsqlConnection(connString);
-            await conn.OpenAsync();
-
-            using var cmd = new NpgsqlCommand(
-                "SELECT id, name, document, status FROM customers WHERE id = @id",
-                conn);
-            cmd.Parameters.AddWithValue("id", id);
-
-            using var reader = await cmd.ExecuteReaderAsync();
-
-            if (await reader.ReadAsync())
-            {
-                var customer = new
-                {
-                    id = reader.GetInt64(0),
-                    name = reader.GetString(1),
-                    document = reader.IsDBNull(2) ? null : reader.GetString(2),
-                    status = reader.GetString(3)
-                };
-
-                return Ok(customer);
-            }
-
-            return NotFound(new { error = $"Customer {id} not found" });
+            return result.Message?.Contains("not found") == true
+                ? NotFound(result)
+                : BadRequest(result);
         }
-        catch (Exception ex)
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Cria um novo cliente
+    /// </summary>
+    /// <param name="customerDto">Dados do cliente a ser criado</param>
+    /// <returns>Resultado da criação do cliente</returns>
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CustomerDto customerDto)
+    {
+        var result = await _customerService.CreateAsync(customerDto);
+
+        if (!result.Success)
         {
-            _logger.LogError(ex, "Error retrieving customer {CustomerId}", id);
-            return StatusCode(500, new { error = "Internal server error" });
+            return BadRequest(result);
         }
+
+        return CreatedAtAction(nameof(GetById), new { id = result.Data!.Id }, result);
+    }
+
+    /// <summary>
+    /// Atualiza um cliente existente
+    /// </summary>
+    /// <param name="id">Id do cliente a ser atualizado</param>
+    /// <param name="customerDto">Dados do cliente a serem atualizados</param>
+    /// <returns>Resultado da atualização do cliente</returns>
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(long id, [FromBody] CustomerDto customerDto)
+    {
+        var result = await _customerService.UpdateAsync(id, customerDto);
+
+        if (!result.Success)
+        {
+            return result.Message?.Contains("not found") == true
+                ? NotFound(result)
+                : BadRequest(result);
+        }
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Apaga um cliente pelo ID
+    /// </summary>
+    /// <param name="id">Id do cliente a ser apagado</param>
+    /// <returns>Resultado da deleção do cliente</returns>
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(long id)
+    {
+        var result = await _customerService.DeleteAsync(id);
+
+        if (!result.Success)
+        {
+            return result.Message?.Contains("not found") == true
+                ? NotFound(result)
+                : BadRequest(result);
+        }
+
+        return Ok(result);
     }
 }
 
