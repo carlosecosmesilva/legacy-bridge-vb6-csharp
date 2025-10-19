@@ -1,3 +1,4 @@
+using MonitorService.Interfaces;
 using MonitorService.Services;
 using Serilog;
 
@@ -26,11 +27,21 @@ try
         })
         .ConfigureServices((context, services) =>
         {
-            services.AddHostedService<FileWatcherService>();
+            // Register services with dependency injection
+            services.AddSingleton<IConfigurationService, ConfigurationService>();
+            services.AddSingleton<IFileEventLogger, FileEventLogger>();
+            services.AddSingleton<IFileEventProcessor, FileEventProcessor>();
+            services.AddSingleton<IHealthCheckService, HealthCheckService>();
+            services.AddSingleton<IFileWatcherService, FileWatcherService>();
+            
+            services.AddHostedService<MonitorBackgroundService>();
         })
         .UseSerilog();
 
     var host = builder.Build();
+
+    var configService = host.Services.GetRequiredService<IConfigurationService>();
+    configService.ValidateConfiguration();
 
     Log.Information("Monitor Service configured successfully");
 

@@ -1,8 +1,6 @@
+
 -- Função de busca de clientes por nome (ILIKE case-insensitive)
 -- Requisitos: VB6-b e C#-b
-SET
-  search_path TO app,
-  public;
 
 CREATE
 OR REPLACE FUNCTION search_customers_by_name(
@@ -13,13 +11,13 @@ OR REPLACE FUNCTION search_customers_by_name(
   id BIGINT,
   name TEXT,
   document VARCHAR,
-  status VARCHAR
-) LANGUAGE plpgsql AS $ $ BEGIN RETURN QUERY
+  active BOOLEAN
+) LANGUAGE plpgsql AS $$ BEGIN RETURN QUERY
 SELECT
   c.id,
   c.name,
   c.document,
-  c.status
+  c.active
 FROM
   customers c
 WHERE
@@ -35,4 +33,4 @@ LIMIT
 
 END;
 
-$ $;
+$$;

@@ -1,186 +1,252 @@
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
+using MonitorService.Interfaces;
+using MonitorService.Models;
 
 namespace MonitorService.Services;
 
-/// <summary>
-/// Windows Service que monitora pasta e registra eventos em arquivo .log
-/// Requisito C#-a: Monitorar criação e deleção de arquivos
-/// </summary>
-public class FileWatcherService : BackgroundService
+public class FileWatcherService(
+    IConfigurationService configurationService,
+    IFileEventProcessor eventProcessor,
+    ILogger<FileWatcherService> logger) : IFileWatcherService, IDisposable
 {
-    private readonly ILogger<FileWatcherService> _logger;
-    private readonly IConfiguration _configuration;
+    private readonly IConfigurationService _configurationService = configurationService;
+    private readonly IFileEventProcessor _eventProcessor = eventProcessor;
+    private readonly ILogger<FileWatcherService> _logger = logger;
     private FileSystemWatcher? _watcher;
-    private readonly string _monitorPath;
-    private readonly string _logPath;
+    private bool _isWatching;
+    private readonly SemaphoreSlim _semaphore = new(1, 1);
 
-    public FileWatcherService(
-        ILogger<FileWatcherService> logger,
-        IConfiguration configuration)
+    public event EventHandler<FileEvent>? FileEventOccurred;
+    public event EventHandler<Exception>? ErrorOccurred;
+
+    public bool IsWatching => _isWatching;
+
+    public async Task StartWatchingAsync(CancellationToken cancellationToken = default)
     {
-        _logger = logger;
-        _configuration = configuration;
-
-        // Lê configurações ou usa valores padrão
-        _monitorPath = _configuration["FileWatcher:MonitorPath"] ?? @"C:\Integration\Drop";
-        _logPath = _configuration["FileWatcher:LogPath"] ?? @"Logs";
-    }
-
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
-    {
+        await _semaphore.WaitAsync(cancellationToken);
         try
         {
-            // Garante que a pasta monitorada existe
-            Directory.CreateDirectory(_monitorPath);
-            _logger.LogInformation("Monitoring folder created/verified: {Path}", _monitorPath);
-
-            // Garante que a pasta de logs existe
-            Directory.CreateDirectory(_logPath);
-
-            // Configura o FileSystemWatcher
-            _watcher = new FileSystemWatcher(_monitorPath)
+            if (_isWatching)
             {
-                EnableRaisingEvents = true,
-                IncludeSubdirectories = false,
-                NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.CreationTime
+                _logger.LogWarning("FileWatcher is already running");
+                return;
+            }
+
+            var config = _configurationService.GetFileWatcherConfiguration();
+            
+            // Valida e criar diretório se necessário
+            if (!Directory.Exists(config.MonitorPath))
+            {
+                Directory.CreateDirectory(config.MonitorPath);
+                _logger.LogInformation("Created monitor directory: {Path}", config.MonitorPath);
+            }
+
+            // Configura FileSystemWatcher
+            _watcher = new FileSystemWatcher(config.MonitorPath)
+            {
+                EnableRaisingEvents = config.EnableRaisingEvents,
+                IncludeSubdirectories = config.IncludeSubdirectories,
+                NotifyFilter = config.NotifyFilters,
+                Filter = config.FileFilters,
+                InternalBufferSize = config.BufferSize
             };
 
-            // Registra eventos de criação
+            // Registra eventos
             _watcher.Created += OnFileCreated;
-
-            // Registra eventos de deleção
             _watcher.Deleted += OnFileDeleted;
-
-            // Registra eventos de renomeação (opcional)
-            _watcher.Renamed += OnFileRenamed;
-
-            // Registra eventos de alteração (opcional)
             _watcher.Changed += OnFileChanged;
-
-            // Registra erros
+            _watcher.Renamed += OnFileRenamed;
             _watcher.Error += OnError;
 
-            _logger.LogInformation(
-                "FileWatcher Service started successfully. Monitoring: {Path}",
-                _monitorPath);
-
-            return Task.CompletedTask;
+            _isWatching = true;
+            _logger.LogInformation("FileWatcher started successfully. Monitoring: {Path}", config.MonitorPath);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error starting FileWatcher Service");
+            _logger.LogError(ex, "Error starting FileWatcher");
+            OnErrorOccurred(ex);
             throw;
         }
+        finally
+        {
+            _semaphore.Release();
+        }
     }
 
-    private void OnFileCreated(object sender, FileSystemEventArgs e)
+    public async Task StopWatchingAsync()
     {
+        await _semaphore.WaitAsync();
         try
         {
-            var fileInfo = new FileInfo(e.FullPath);
-            var logMessage = $"[CREATED] File: {e.Name} | Size: {fileInfo.Length} bytes | Time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
+            if (!_isWatching)
+            {
+                _logger.LogWarning("FileWatcher is not running");
+                return;
+            }
 
-            _logger.LogInformation(logMessage);
-            WriteToLogFile(logMessage);
+            if (_watcher != null)
+            {
+                _watcher.EnableRaisingEvents = false;
+                _watcher.Created -= OnFileCreated;
+                _watcher.Deleted -= OnFileDeleted;
+                _watcher.Changed -= OnFileChanged;
+                _watcher.Renamed -= OnFileRenamed;
+                _watcher.Error -= OnError;
+                _watcher.Dispose();
+                _watcher = null;
+            }
+
+            _isWatching = false;
+            _logger.LogInformation("FileWatcher stopped successfully");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing Created event for file: {FileName}", e.Name);
+            _logger.LogError(ex, "Error stopping FileWatcher");
+            OnErrorOccurred(ex);
+            throw;
+        }
+        finally
+        {
+            _semaphore.Release();
         }
     }
 
-    private void OnFileDeleted(object sender, FileSystemEventArgs e)
+    private async void OnFileCreated(object sender, FileSystemEventArgs e) => await ProcessFileEventAsync(FileEventType.Created, e);
+
+    private async void OnFileDeleted(object sender, FileSystemEventArgs e) => await ProcessFileEventAsync(FileEventType.Deleted, e);
+
+    private async void OnFileChanged(object sender, FileSystemEventArgs e) => await ProcessFileEventAsync(FileEventType.Changed, e);
+    
+
+    private async void OnFileRenamed(object sender, RenamedEventArgs e)
     {
         try
         {
-            var logMessage = $"[DELETED] File: {e.Name} | Time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
+            var fileEvent = new FileEvent
+            {
+                FileName = e.Name,
+                FullPath = e.FullPath,
+                EventType = FileEventType.Renamed,
+                Timestamp = DateTime.UtcNow,
+                OldName = e.OldName,
+                NewName = e.Name
+            };
 
-            _logger.LogInformation(logMessage);
-            WriteToLogFile(logMessage);
+            // Verifica se deve processar o evento
+            try
+            {
+                if (File.Exists(e.FullPath))
+                {
+                    var fileInfo = new FileInfo(e.FullPath);
+                    fileEvent.FileSize = fileInfo.Length;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not get file size for renamed file: {FileName}", e.Name);
+            }
+
+            await ProcessEventAsync(fileEvent);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing Deleted event for file: {FileName}", e.Name);
+            _logger.LogError(ex, "Error processing renamed file: {FileName}", e.Name);
+            OnErrorOccurred(ex);
         }
     }
 
-    private void OnFileRenamed(object sender, RenamedEventArgs e)
-    {
-        try
-        {
-            var logMessage = $"[RENAMED] From: {e.OldName} → To: {e.Name} | Time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
-
-            _logger.LogInformation(logMessage);
-            WriteToLogFile(logMessage);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error processing Renamed event for file: {FileName}", e.Name);
-        }
-    }
-
-    private void OnFileChanged(object sender, FileSystemEventArgs e)
-    {
-        try
-        {
-            var logMessage = $"[CHANGED] File: {e.Name} | Time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
-
-            _logger.LogInformation(logMessage);
-            WriteToLogFile(logMessage);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error processing Changed event for file: {FileName}", e.Name);
-        }
-    }
-
-    private void OnError(object sender, ErrorEventArgs e)
+    private async void OnError(object sender, ErrorEventArgs e)
     {
         var exception = e.GetException();
         _logger.LogError(exception, "FileSystemWatcher error occurred");
+        
+        var fileEvent = new FileEvent
+        {
+            EventType = FileEventType.Error,
+            Timestamp = DateTime.UtcNow,
+            ErrorMessage = exception.Message
+        };
+
+        await ProcessEventAsync(fileEvent);
+        OnErrorOccurred(exception);
     }
 
-    /// <summary>
-    /// Escreve eventos em arquivo .log no formato especificado
-    /// </summary>
-    private void WriteToLogFile(string message)
+    private async Task ProcessFileEventAsync(FileEventType eventType, FileSystemEventArgs e)
     {
         try
         {
-            var logFileName = $"file-monitor-{DateTime.Now:yyyy-MM-dd}.log";
-            var logFilePath = Path.Combine(_logPath, logFileName);
-
-            // Usa lock para thread-safety
-            lock (this)
+            var fileEvent = new FileEvent
             {
-                File.AppendAllText(logFilePath, message + Environment.NewLine);
+                FileName = e.Name,
+                FullPath = e.FullPath,
+                EventType = eventType,
+                Timestamp = DateTime.UtcNow
+            };
+
+            // Verifica se deve processar o evento
+            if (eventType == FileEventType.Created || eventType == FileEventType.Changed)
+            {
+                try
+                {
+                    if (File.Exists(e.FullPath))
+                    {
+                        var fileInfo = new FileInfo(e.FullPath);
+                        fileEvent.FileSize = fileInfo.Length;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not get file size for file: {FileName}", e.Name);
+                }
             }
+
+            await ProcessEventAsync(fileEvent);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error writing to log file");
+            _logger.LogError(ex, "Error processing file event: {EventType} - {FileName}", eventType, e.Name);
+            OnErrorOccurred(ex);
         }
     }
 
-    public override void Dispose()
+    private async Task ProcessEventAsync(FileEvent fileEvent)
     {
-        if (_watcher != null)
+        try
         {
-            _watcher.Created -= OnFileCreated;
-            _watcher.Deleted -= OnFileDeleted;
-            _watcher.Renamed -= OnFileRenamed;
-            _watcher.Changed -= OnFileChanged;
-            _watcher.Error -= OnError;
-            _watcher.Dispose();
-        }
+            // Verifica se deve processar o evento
+            var shouldProcess = await _eventProcessor.ShouldProcessEventAsync(fileEvent);
+            if (!shouldProcess)
+            {
+                _logger.LogDebug("Skipping file event: {EventType} - {FileName}", fileEvent.EventType, fileEvent.FileName);
+                return;
+            }
 
-        _logger.LogInformation("FileWatcher Service disposed");
-        base.Dispose();
+            // Processa o evento
+            await _eventProcessor.ProcessEventAsync(fileEvent);
+            
+            // Notifica sobre o evento
+            OnFileEventOccurred(fileEvent);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing file event: {EventType} - {FileName}", fileEvent.EventType, fileEvent.FileName);
+            OnErrorOccurred(ex);
+        }
+    }
+
+    private void OnFileEventOccurred(FileEvent fileEvent)
+    {
+        FileEventOccurred?.Invoke(this, fileEvent);
+    }
+
+    private void OnErrorOccurred(Exception exception)
+    {
+        ErrorOccurred?.Invoke(this, exception);
+    }
+
+    public void Dispose()
+    {
+        StopWatchingAsync().GetAwaiter().GetResult();
+        _semaphore?.Dispose();
+        _watcher?.Dispose();
     }
 }
-

@@ -1,5 +1,6 @@
+using Api.Models;
+using Api.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Npgsql;
 
 namespace Api.Controllers;
 
@@ -7,100 +8,117 @@ namespace Api.Controllers;
 [Route("api/[controller]")]
 public class ProductsController : ControllerBase
 {
-    private readonly IConfiguration _cfg;
+    private readonly IProductService _productService;
     private readonly ILogger<ProductsController> _logger;
 
-    public ProductsController(IConfiguration cfg, ILogger<ProductsController> logger)
+    public ProductsController(IProductService productService, ILogger<ProductsController> logger)
     {
-        _cfg = cfg;
+        _productService = productService;
         _logger = logger;
     }
 
     /// <summary>
-    /// Retorna lista de produtos ativos (Requisito VB6-a)
+    /// Retorna todos os produtos (ativos e inativos)
     /// </summary>
-    [HttpGet]
-    public async Task<IActionResult> GetProducts()
+    /// <returns>Lista de Produtos</returns>
+    [HttpGet("all")]
+    public async Task<IActionResult> GetAllProducts()
     {
         try
         {
-            var connString = _cfg.GetConnectionString("DefaultConnection");
+            var result = await _productService.GetAllAsync();
 
-            using var conn = new NpgsqlConnection(connString);
-            await conn.OpenAsync();
-
-            // Buscar apenas produtos ativos
-            using var cmd = new NpgsqlCommand(
-                "SELECT id, name, price FROM products WHERE active = TRUE ORDER BY name",
-                conn);
-
-            var products = new List<object>();
-            using var reader = await cmd.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
+            if (!result.Success)
             {
-                products.Add(new
-                {
-                    id = reader.GetInt64(0),
-                    name = reader.GetString(1),
-                    price = reader.GetDecimal(2)
-                });
+                return StatusCode(500, result);
             }
 
-            _logger.LogInformation("Products list retrieved: {Count} items", products.Count);
-
-            return Ok(products);
+            return Ok(result);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving products");
-            return StatusCode(500, new { error = "Internal server error" });
+            _logger.LogError(ex, "Erro ao buscar produtos");
+            return StatusCode(500, new { success = false, message = ex.Message });
         }
     }
 
     /// <summary>
-    /// Retorna produto por ID
+    /// Retorna apenas produtos ativos
     /// </summary>
+    /// <param name="id">Id do produto para obter</param>
+    /// <returns>Produto</returns>
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(long id)
     {
-        try
+        var result = await _productService.GetByIdAsync(id);
+
+        if (!result.Success)
         {
-            if (id <= 0)
-                return BadRequest(new { error = "Invalid product ID" });
-
-            var connString = _cfg.GetConnectionString("DefaultConnection");
-
-            using var conn = new NpgsqlConnection(connString);
-            await conn.OpenAsync();
-
-            using var cmd = new NpgsqlCommand(
-                "SELECT id, name, price, active FROM products WHERE id = @id",
-                conn);
-            cmd.Parameters.AddWithValue("id", id);
-
-            using var reader = await cmd.ExecuteReaderAsync();
-
-            if (await reader.ReadAsync())
-            {
-                var product = new
-                {
-                    id = reader.GetInt64(0),
-                    name = reader.GetString(1),
-                    price = reader.GetDecimal(2),
-                    active = reader.GetBoolean(3)
-                };
-
-                return Ok(product);
-            }
-
-            return NotFound(new { error = $"Product {id} not found" });
+            return result.Message?.Contains("not found") == true
+                ? NotFound(result)
+                : BadRequest(result);
         }
-        catch (Exception ex)
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Cria um novo produto
+    /// </summary>
+    /// <param name="productDto">Dados do produto a ser criado</param>
+    /// <returns>Resultado da criação do produto</returns>
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] ProductDto productDto)
+    {
+        var result = await _productService.CreateAsync(productDto);
+
+        if (!result.Success)
         {
-            _logger.LogError(ex, "Error retrieving product {ProductId}", id);
-            return StatusCode(500, new { error = "Internal server error" });
+            return BadRequest(result);
         }
+
+        return CreatedAtAction(nameof(GetById), new { id = result.Data!.Id }, result);
+    }
+
+    /// <summary>
+    /// Atualiza um produto existente
+    /// </summary>
+    /// <param name="id">Id do produto a ser atualizado</param>
+    /// <param name="productDto">Dados do produto a serem atualizados</param>
+    /// <returns>Resultado da atualização do produto</returns>
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(long id, [FromBody] ProductDto productDto)
+    {
+        var result = await _productService.UpdateAsync(id, productDto);
+
+        if (!result.Success)
+        {
+            return result.Message?.Contains("not found") == true
+                ? NotFound(result)
+                : BadRequest(result);
+        }
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Remove um produto por ID
+    /// </summary>
+    /// <param name="id">Id do produto a ser removido</param>
+    /// <returns>Resultado da remoção do produto</returns>
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(long id)
+    {
+        var result = await _productService.DeleteAsync(id);
+
+        if (!result.Success)
+        {
+            return result.Message?.Contains("not found") == true
+                ? NotFound(result)
+                : BadRequest(result);
+        }
+
+        return Ok(result);
     }
 }
 
