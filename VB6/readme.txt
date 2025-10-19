@@ -1,1 +1,0 @@
-Run LoadProducts() from VB6 to test API call.
