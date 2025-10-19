@@ -1,18 +1,17 @@
--- filepath: d:\Github\legacy-bridge-vb6-csharp\Db\005_seed.sql
 -- Dados mínimos para desenvolvimento e demonstração
-SET
-    search_path TO app,
-    public;
+ALTER TABLE customers
+ADD CONSTRAINT uq_customers_document UNIQUE (document);
 
 -- Clientes (usa ON CONFLICT para idempotência quando documento existe)
-INSERT INTO
-    customers (name, document, status)
+INSERT INTO customers (name, document, active)
 VALUES
-    ('João Silva', '11111111111', 'ATIVO'),
-    ('Maria Oliveira', '22222222222', 'ATIVO'),
-    ('Carlos Souza', '33333333333', 'INATIVO'),
-    ('Mariana Costa', '44444444444', 'ATIVO'),
-    ('José Santos', '55555555555', 'ATIVO') ON CONFLICT (document) DO NOTHING;
+    ('João Silva', '11111111111', TRUE),
+    ('Maria Oliveira', '22222222222', TRUE),
+    ('Carlos Souza', '33333333333', FALSE),
+    ('Mariana Costa', '44444444444', TRUE),
+    ('José Santos', '55555555555', TRUE)
+ON CONFLICT (document) DO NOTHING;
+
 
 -- Produtos
 INSERT INTO
@@ -22,4 +21,4 @@ VALUES
     ('Plano Profissional', 129.90, TRUE),
     ('Plano Empresarial', 299.90, TRUE),
     ('Add-on Relatórios', 19.90, TRUE),
-    ('Produto Descontinuado', 9.90, FALSE) ON CONFLICT (name) DO NOTHING;
+    ('Produto Descontinuado', 9.90, FALSE);
