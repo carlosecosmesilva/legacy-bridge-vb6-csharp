@@ -1,4 +1,5 @@
 version: '3.8'
+
 services:
   db:
     image: postgres:15
@@ -8,11 +9,43 @@ services:
       POSTGRES_DB: paschoal_db
     ports:
       - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./Db:/docker-entrypoint-initdb.d
+    networks:
+      - legacy-network
+
   api:
     build: ./Api
     ports:
       - "5000:80"
     environment:
+      - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Username=paschoal;Password=paschoal_pass;Database=paschoal_db
     depends_on:
       - db
+    volumes:
+      - ./Api/Logs:/app/Logs
+    networks:
+      - legacy-network
+
+  monitor:
+    build: ./MonitorService
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - FileWatcher__MonitorPath=/app/monitor
+      - FileWatcher__LogPath=/app/logs
+    volumes:
+      - ./MonitorService/Logs:/app/logs
+      - ./monitor:/app/monitor
+    networks:
+      - legacy-network
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+
+networks:
+  legacy-network:
+    driver: bridge
