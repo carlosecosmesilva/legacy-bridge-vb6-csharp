@@ -1,42 +1,22 @@
+using Api.Data;
 using Api.Models;
 using Api.Repositories.Interfaces;
-using Npgsql;
+using Microsoft.EntityFrameworkCore;
 
 namespace Api.Repositories;
 
-public class ProductRepository(IConfiguration configuration, ILogger<ProductRepository> logger) : IProductRepository
+public class ProductRepository(AppDbContext context, ILogger<ProductRepository> logger) : IProductRepository
 {
-    private readonly string _connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found");
+    private readonly AppDbContext _context = context;
     private readonly ILogger<ProductRepository> _logger = logger;
 
     public async Task<Product?> GetByIdAsync(long id)
     {
         try
         {
-            using var connection = new NpgsqlConnection(_connectionString);
-            await connection.OpenAsync();
-
-            using var command = new NpgsqlCommand(
-                "SELECT id, name, price, active, created_at FROM products WHERE id = @id",
-                connection);
-            command.Parameters.AddWithValue("id", id);
-
-            using var reader = await command.ExecuteReaderAsync();
-            
-            if (await reader.ReadAsync())
-            {
-                return new Product
-                {
-                    Id = reader.GetInt64(0),
-                    Name = reader.GetString(1),
-                    Price = reader.GetDecimal(2),
-                    Active = reader.GetBoolean(3),
-                    CreatedAt = reader.GetDateTime(4)
-                };
-            }
-
-            return null;
+            return await _context.Products
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == id);
         }
         catch (Exception ex)
         {
@@ -49,29 +29,10 @@ public class ProductRepository(IConfiguration configuration, ILogger<ProductRepo
     {
         try
         {
-            using var connection = new NpgsqlConnection(_connectionString);
-            await connection.OpenAsync();
-
-            using var command = new NpgsqlCommand(
-                "SELECT id, name, price, active, created_at FROM products ORDER BY name",
-                connection);
-
-            var products = new List<Product>();
-            using var reader = await command.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
-            {
-                products.Add(new Product
-                {
-                    Id = reader.GetInt64(0),
-                    Name = reader.GetString(1),
-                    Price = reader.GetDecimal(2),
-                    Active = reader.GetBoolean(3),
-                    CreatedAt = reader.GetDateTime(4)
-                });
-            }
-
-            return products;
+           return await _context.Products
+                .AsNoTracking()
+                .OrderBy(p => p.Name)
+                .ToListAsync();
         }
         catch (Exception ex)
         {
@@ -84,29 +45,11 @@ public class ProductRepository(IConfiguration configuration, ILogger<ProductRepo
     {
         try
         {
-            using var connection = new NpgsqlConnection(_connectionString);
-            await connection.OpenAsync();
-
-            using var command = new NpgsqlCommand(
-                "SELECT id, name, price, active, created_at FROM products WHERE active = TRUE ORDER BY name",
-                connection);
-
-            var products = new List<Product>();
-            using var reader = await command.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
-            {
-                products.Add(new Product
-                {
-                    Id = reader.GetInt64(0),
-                    Name = reader.GetString(1),
-                    Price = reader.GetDecimal(2),
-                    Active = reader.GetBoolean(3),
-                    CreatedAt = reader.GetDateTime(4)
-                });
-            }
-
-            return products;
+           return await _context.Products
+                .AsNoTracking()
+                .Where(p => p.Active)
+                .OrderBy(p => p.Name)
+                .ToListAsync();
         }
         catch (Exception ex)
         {
@@ -119,25 +62,8 @@ public class ProductRepository(IConfiguration configuration, ILogger<ProductRepo
     {
         try
         {
-            using var connection = new NpgsqlConnection(_connectionString);
-            await connection.OpenAsync();
-
-            using var command = new NpgsqlCommand(
-                @"INSERT INTO products (name, price, active) 
-                  VALUES (@name, @price, @active) 
-                  RETURNING id, created_at",
-                connection);
-            command.Parameters.AddWithValue("name", product.Name);
-            command.Parameters.AddWithValue("price", product.Price);
-            command.Parameters.AddWithValue("active", product.Active);
-
-            using var reader = await command.ExecuteReaderAsync();
-            if (await reader.ReadAsync())
-            {
-                product.Id = reader.GetInt64(0);
-                product.CreatedAt = reader.GetDateTime(1);
-            }
-
+            _context.Products.Add(product);
+            await _context.SaveChangesAsync();
             return product;
         }
         catch (Exception ex)
@@ -151,21 +77,15 @@ public class ProductRepository(IConfiguration configuration, ILogger<ProductRepo
     {
         try
         {
-            using var connection = new NpgsqlConnection(_connectionString);
-            await connection.OpenAsync();
-
-            using var command = new NpgsqlCommand(
-                @"UPDATE products 
-                  SET name = @name, price = @price, active = @active 
-                  WHERE id = @id",
-                connection);
-            command.Parameters.AddWithValue("id", product.Id);
-            command.Parameters.AddWithValue("name", product.Name);
-            command.Parameters.AddWithValue("price", product.Price);
-            command.Parameters.AddWithValue("active", product.Active);
-
-            var rowsAffected = await command.ExecuteNonQueryAsync();
-            return rowsAffected > 0 ? product : null;
+            var existingProduct = await _context.Products.FindAsync(product.Id);
+            if (existingProduct == null)
+                return null;
+            
+            existingProduct.Name = product.Name;
+            existingProduct.Price = product.Price;
+            existingProduct.Active = product.Active;
+            await _context.SaveChangesAsync();
+            return existingProduct;
         }
         catch (Exception ex)
         {
@@ -178,16 +98,12 @@ public class ProductRepository(IConfiguration configuration, ILogger<ProductRepo
     {
         try
         {
-            using var connection = new NpgsqlConnection(_connectionString);
-            await connection.OpenAsync();
-
-            using var command = new NpgsqlCommand(
-                "DELETE FROM products WHERE id = @id",
-                connection);
-            command.Parameters.AddWithValue("id", id);
-
-            var rowsAffected = await command.ExecuteNonQueryAsync();
-            return rowsAffected > 0;
+            var product = await _context.Products.FindAsync(id);
+            if (product == null)
+                return false;
+            _context.Products.Remove(product);
+            await _context.SaveChangesAsync();
+            return true;
         }
         catch (Exception ex)
         {

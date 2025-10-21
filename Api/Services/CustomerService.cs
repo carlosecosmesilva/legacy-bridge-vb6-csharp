@@ -1,3 +1,7 @@
+using Api.Contracts.Common;
+using Api.Contracts.Requests;
+using Api.Contracts.Responses;
+using Api.DTOs;
 using Api.Models;
 using Api.Repositories.Interfaces;
 using Api.Services.Interfaces;
@@ -154,7 +158,7 @@ public class CustomerService(ICustomerRepository customerRepository, ILogger<Cus
             Id = customer.Id,
             Name = customer.Name,
             Document = customer.Document,
-            Status = customer.Status,
+            Status = customer.Active,
             CreatedAt = customer.CreatedAt
         };
     }
@@ -166,7 +170,7 @@ public class CustomerService(ICustomerRepository customerRepository, ILogger<Cus
             Id = customerDto.Id,
             Name = customerDto.Name,
             Document = customerDto.Document,
-            Status = customerDto.Status
+            Active = customerDto.Status
         };
     }
 

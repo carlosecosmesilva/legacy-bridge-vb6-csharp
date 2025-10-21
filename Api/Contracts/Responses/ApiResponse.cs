@@ -1,4 +1,4 @@
-namespace Api.Models;
+namespace Api.Contracts.Responses;
 
 public class ApiResponse<T>
 {
@@ -23,7 +23,7 @@ public class ApiResponse<T>
         {
             Success = false,
             Message = message,
-            Errors = errors ?? new List<string>()
+            Errors = errors ?? []
         };
     }
 }
