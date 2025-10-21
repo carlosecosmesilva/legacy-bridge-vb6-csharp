@@ -14,51 +14,82 @@ legacy-bridge-vb6-csharp/
 │
 ├── Api/                                # API REST em ASP.NET Core 8.0
 │   ├── Controllers/                    # Endpoints REST
-│   │   ├── CustomersController.cs      # CRUD de clientes
-│   │   └── ProductsController.cs       # CRUD de produtos
+│   │   ├── CustomersController.cs
+│   │   └── ProductsController.cs
 │   ├── Services/                       # Camada de negócio
 │   │   ├── Interfaces/
 │   │   │   ├── ICustomerService.cs
 │   │   │   └── IProductService.cs
 │   │   ├── CustomerService.cs
 │   │   └── ProductService.cs
-│   ├── Repositories/                   # Camada de acesso a dados
+│   ├── Repositories/                   # Acesso a dados (EF Core)
 │   │   ├── Interfaces/
 │   │   │   ├── ICustomerRepository.cs
 │   │   │   └── IProductRepository.cs
 │   │   ├── CustomerRepository.cs
 │   │   └── ProductRepository.cs
-│   ├── Models/                         # Entidades e DTOs
-│   │   ├── Customer.cs
-│   │   ├── Product.cs
-│   │   └── ApiResponse.cs
 │   ├── Data/
 │   │   └── AppDbContext.cs
+│   ├── Models/
+│   │   ├── Customer.cs
+│   │   └── Product.cs
+│   ├── DTOs/
+│   │   ├── CustomerDto.cs
+│   │   └── ProductDto.cs
+│   ├── Contracts/                      # Contratos de I/O (requests/responses)
+│   │   ├── Common/
+│   │   │   └── PaginationInfo.cs
+│   │   ├── Requests/
+│   │   │   └── CustomerSearchRequest.cs
+│   │   └── Responses/
+│   │       ├── ApiResponse.cs
+│   │       └── CustomerSearchResponse.cs
+│   ├── Mappings/                       # Perfis AutoMapper
+│   │   ├── CustomerProfile.cs
+│   │   └── ProductProfile.cs
+│   ├── Extensions/                     # Extensões/bootstrapping
+│   │   ├── ApiResponseExtensions.cs
+│   │   ├── InfrastructureExtensions.cs
+│   │   ├── MappingExtensions.cs
+│   │   └── ServiceCollectionExtensions.cs
 │   ├── Middleware/
 │   │   └── ExceptionHandlingMiddleware.cs
-│   ├── Config/                         # Arquivos de configuração
-│   ├── Logs/                           # Logs (gerado em runtime)
+│   ├── Migrations/                     # EF Core migrations
+│   │   ├── 20251021015403_InitialCreate.cs
+│   │   ├── 20251021015403_InitialCreate.Designer.cs
+│   │   └── AppDbContextModelSnapshot.cs
 │   ├── Properties/
 │   │   └── launchSettings.json
-│   ├── Program.cs                      # Bootstrap da aplicação
+│   ├── Logs/                           # Saída de logs em runtime
+│   ├── Program.cs
 │   ├── appsettings.json
 │   ├── Api.csproj
 │   └── Dockerfile
 │
+├── Api.Tests/                          # Testes de unidade da API (xUnit)
+│   ├── Extensions/
+│   │   └── ApiResponseExtensionsTests.cs
+│   ├── Services/
+│   │   ├── CustomerServiceTests.cs
+│   │   └── ProductServiceTests.cs
+│   ├── Api.Tests.csproj
+│   └── (bin/ obj/)                     # Artefatos de build
+│
 ├── MonitorService/                     # Windows Service (.NET 8 Worker)
-│   ├── Services/                       # Serviços do monitor
-│   │   ├── FileWatcherService.cs
-│   │   ├── FileEventProcessor.cs
-│   │   ├── FileEventLogger.cs
-│   │   ├── HealthCheckService.cs
-│   │   ├── ConfigurationService.cs
-│   │   ├── RetryService.cs
+│   ├── Services/
 │   │   ├── CircuitBreakerService.cs
-│   │   └── MonitorBackgroundService.cs
+│   │   ├── ConfigurationService.cs
+│   │   ├── FileEventLogger.cs
+│   │   ├── FileEventProcessor.cs
+│   │   ├── FileWatcherService.cs
+│   │   ├── HealthCheckService.cs
+│   │   ├── MonitorBackgroundService.cs
+│   │   └── RetryService.cs
 │   ├── Interfaces/
-│   │   ├── IFileWatcherService.cs
-│   │   ├── IFileEventProcessor.cs
+│   │   ├── IConfigurationService.cs
 │   │   ├── IFileEventLogger.cs
+│   │   ├── IFileEventProcessor.cs
+│   │   ├── IFileWatcherService.cs
 │   │   └── IHealthCheckService.cs
 │   ├── Models/
 │   │   ├── FileEvent.cs
@@ -71,25 +102,13 @@ legacy-bridge-vb6-csharp/
 │   ├── MonitorService.csproj
 │   └── Dockerfile
 │
-├── VB6/                                # Aplicação legado em Visual Basic 6
-│   ├── Forms/                          # Formulários (telas)
-│   │   ├── frmMain.frm
-│   │   ├── frmCustomers.frm
-│   │   └── frmProductAPI.frm
-│   ├── Modules/                        # Módulos (.bas)
-│   │   ├── modApi.bas                  # Rotinas MSXML para consumir API
-│   │   ├── JsonConverter.bas
-│   │   └── modUtils.bas
-│   ├── LegacyBridge.vbp
-│   ├── LegacyBridge.vbw
-│   └── MSSCCPRJ.SCC
-│
 ├── Db/                                 # Scripts SQL (PostgreSQL)
-│   ├── 001_create_database.sql
-│   ├── 002_create_customers_table.sql
-│   ├── 003_create_products_table.sql
-│   ├── 004_create_search_function.sql
-│   ├── 005_inserts_schema.sql
+│   ├── legacy/
+│   │   ├── 001_create_database.sql
+│   │   ├── 002_create_customers_table.sql
+│   │   ├── 003_create_products_table.sql
+│   │   ├── 004_create_search_function.sql
+│   │   └── 005_inserts_schema.sql
 │   └── Dump e Backup/
 │       ├── dump_legacy_bridge_db.sql
 │       └── legacy_bridge_db.backup
@@ -99,13 +118,30 @@ legacy-bridge-vb6-csharp/
 │   ├── ci-cd.md
 │   └── runbook.md
 │
-├── .github/                            # GitHub Actions
-├── .gitignore
+├── VB6/                                # Aplicação legado em Visual Basic 6
+│   ├── Forms/
+│   ├── Modules/
+│   ├── LegacyBridge.vbp
+│   ├── LegacyBridge.vbw
+│   └── MSSCCPRJ.SCC
+│
 ├── docker-compose.yml                  # Orquestração de containers
 ├── LegacyBridge.sln                    # Solution do Visual Studio
-├── LICENSE                             # Licença MIT
-└── README.md                           # Este arquivo
+├── LICENSE
+└── README.md
 ```
+
+### Novas pastas e convenções (resumo)
+
+-   Api/Contracts
+    -   Common: tipos utilitários compartilhados (ex.: paginação)
+    -   Requests/Responses: contratos de entrada/saída para endpoints e serviços
+-   Api/DTOs: objetos de transferência usados pelos Controllers/Services
+-   Api/Mappings: perfis do AutoMapper e configurações de mapeamento
+-   Api/Extensions: métodos de extensão para composição (DI, Pipeline, Responses)
+-   Api/Migrations: histórico de migrações do EF Core
+-   Api.Tests: testes de unidade e utilitários de teste
+-   Db/legacy: scripts de schema e dados baseados no legado
 
 ## Requisitos
 
