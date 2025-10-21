@@ -247,7 +247,7 @@ Isso irá iniciar:
 -   **API**: http://localhost:5000
 -   **Swagger**: http://localhost:5000/swagger
 -   **Health Check**: http://localhost:5000/health
--   **PostgreSQL**: localhost:5432 (usuário: `paschoal`, senha: `paschoal_pass`, database: `paschoal_db`)
+-   **PostgreSQL**: localhost:5432 (usuário: `seu_login`, senha: `sua_senha`, database: `nome_banco`)
 
 4. **Parar e remover containers**
 
