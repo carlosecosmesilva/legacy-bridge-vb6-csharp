@@ -1,4 +1,6 @@
-using Api.Models;
+using Api.Contracts.Requests;
+using Api.DTOs;
+using Api.Extensions;
 using Api.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -33,14 +35,7 @@ public class CustomersController(ICustomerService customerService, ILogger<Custo
 
         var result = await _customerService.SearchByNameAsync(request);
 
-        if (!result.Success)
-        {
-            return result.Message?.Contains("not found") == true
-                ? NotFound(result)
-                : BadRequest(result);
-        }
-
-        return Ok(result);
+        return result.ToActionResult();
     }
 
     /// <summary>
@@ -52,15 +47,7 @@ public class CustomersController(ICustomerService customerService, ILogger<Custo
     public async Task<IActionResult> GetById(long id)
     {
         var result = await _customerService.GetByIdAsync(id);
-
-        if (!result.Success)
-        {
-            return result.Message?.Contains("not found") == true
-                ? NotFound(result)
-                : BadRequest(result);
-        }
-
-        return Ok(result);
+        return result.ToActionResult();
     }
 
     /// <summary>
@@ -72,13 +59,7 @@ public class CustomersController(ICustomerService customerService, ILogger<Custo
     public async Task<IActionResult> Create([FromBody] CustomerDto customerDto)
     {
         var result = await _customerService.CreateAsync(customerDto);
-
-        if (!result.Success)
-        {
-            return BadRequest(result);
-        }
-
-        return CreatedAtAction(nameof(GetById), new { id = result.Data!.Id }, result);
+        return result.ToActionResult();
     }
 
     /// <summary>
@@ -91,15 +72,7 @@ public class CustomersController(ICustomerService customerService, ILogger<Custo
     public async Task<IActionResult> Update(long id, [FromBody] CustomerDto customerDto)
     {
         var result = await _customerService.UpdateAsync(id, customerDto);
-
-        if (!result.Success)
-        {
-            return result.Message?.Contains("not found") == true
-                ? NotFound(result)
-                : BadRequest(result);
-        }
-
-        return Ok(result);
+        return result.ToActionResult();
     }
 
     /// <summary>
@@ -111,15 +84,7 @@ public class CustomersController(ICustomerService customerService, ILogger<Custo
     public async Task<IActionResult> Delete(long id)
     {
         var result = await _customerService.DeleteAsync(id);
-
-        if (!result.Success)
-        {
-            return result.Message?.Contains("not found") == true
-                ? NotFound(result)
-                : BadRequest(result);
-        }
-
-        return Ok(result);
+        return result.ToActionResult();
     }
 }
 

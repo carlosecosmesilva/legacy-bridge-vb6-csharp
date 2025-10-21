@@ -1,20 +1,24 @@
+using Api.Contracts.Responses;
+using Api.DTOs;
 using Api.Models;
 using Api.Repositories.Interfaces;
 using Api.Services.Interfaces;
+using AutoMapper;
 
 namespace Api.Services;
 
-public class ProductService(IProductRepository productRepository, ILogger<ProductService> logger) : IProductService
+public class ProductService(IProductRepository productRepository, ILogger<ProductService> logger, IMapper mapper) : IProductService
 {
     private readonly IProductRepository _productRepository = productRepository;
     private readonly ILogger<ProductService> _logger = logger;
+    private readonly IMapper _mapper = mapper;
 
     public async Task<ApiResponse<List<ProductDto>>> GetAllAsync()
     {
         try
         {
             var products = await _productRepository.GetAllAsync();
-            var productDtos = products.Select(MapToDto).ToList();
+            var productDtos = _mapper.Map<List<ProductDto>>(products);
 
             _logger.LogInformation("All products retrieved: {Count} items", productDtos.Count);
             return ApiResponse<List<ProductDto>>.SuccessResult(productDtos);
@@ -31,7 +35,7 @@ public class ProductService(IProductRepository productRepository, ILogger<Produc
         try
         {
             var products = await _productRepository.GetActiveAsync();
-            var productDtos = products.Select(MapToDto).ToList();
+            var productDtos = _mapper.Map<List<ProductDto>>(products);
 
             _logger.LogInformation("Active products retrieved: {Count} items", productDtos.Count);
             return ApiResponse<List<ProductDto>>.SuccessResult(productDtos);
@@ -55,7 +59,7 @@ public class ProductService(IProductRepository productRepository, ILogger<Produc
             if (product == null)
                 return ApiResponse<ProductDto?>.ErrorResult($"Product {id} not found");
 
-            var productDto = MapToDto(product);
+            var productDto = _mapper.Map<ProductDto>(product);
             return ApiResponse<ProductDto?>.SuccessResult(productDto);
         }
         catch (Exception ex)
@@ -71,13 +75,13 @@ public class ProductService(IProductRepository productRepository, ILogger<Produc
         {
             var (IsValid, Errors) = ValidateProduct(productDto);
             if (!IsValid)
-                return ApiResponse<ProductDto>.ErrorResult("Validation failed", Errors);
+                return ApiResponse<ProductDto>.ErrorResult("Validation errors occurred", Errors);
 
             _logger.LogInformation("Creating product with name: {ProductName}", productDto.Name);
 
-            var product = MapToEntity(productDto);
+            var product = _mapper.Map<Product>(productDto);
             var createdProduct = await _productRepository.CreateAsync(product);
-            var resultDto = MapToDto(createdProduct);
+            var resultDto = _mapper.Map<ProductDto>(createdProduct);
 
             _logger.LogInformation("Product created: {ProductId}", createdProduct.Id);
             return ApiResponse<ProductDto>.SuccessResult(resultDto, "Product created successfully");
@@ -100,10 +104,10 @@ public class ProductService(IProductRepository productRepository, ILogger<Produc
 
             var (IsValid, Errors) = ValidateProduct(productDto);
             if (!IsValid)
-                return ApiResponse<ProductDto?>.ErrorResult("Validation failed", Errors);
+                return ApiResponse<ProductDto?>.ErrorResult("Validation errors occurred", Errors);
 
 
-            var product = MapToEntity(productDto);
+            var product = _mapper.Map<Product>(productDto);
             product.Id = id;
 
             _logger.LogInformation("Updating product with ID: {ProductId}", id);
@@ -113,7 +117,7 @@ public class ProductService(IProductRepository productRepository, ILogger<Produc
             if (updatedProduct == null)
                 return ApiResponse<ProductDto?>.ErrorResult($"Product {id} not found");
 
-            var resultDto = MapToDto(updatedProduct);
+            var resultDto = _mapper.Map<ProductDto>(updatedProduct);
             _logger.LogInformation("Product updated: {ProductId}", id);
             return ApiResponse<ProductDto?>.SuccessResult(resultDto, "Product updated successfully");
         }
@@ -146,29 +150,6 @@ public class ProductService(IProductRepository productRepository, ILogger<Produc
         }
     }
 
-    private static ProductDto MapToDto(Product product)
-    {
-        return new ProductDto
-        {
-            Id = product.Id,
-            Name = product.Name,
-            Price = product.Price,
-            Active = product.Active,
-            CreatedAt = product.CreatedAt
-        };
-    }
-
-    private static Product MapToEntity(ProductDto productDto)
-    {
-        return new Product
-        {
-            Id = productDto.Id,
-            Name = productDto.Name,
-            Price = productDto.Price,
-            Active = productDto.Active
-        };
-    }
-
     private static (bool IsValid, List<string> Errors) ValidateProduct(ProductDto product)
     {
         var errors = new List<string>();
@@ -179,7 +160,7 @@ public class ProductService(IProductRepository productRepository, ILogger<Produc
             errors.Add("Name must be less than 255 characters");
 
         if (product.Price < 0)
-            errors.Add("Price must be greater than or equal to 0");
+            errors.Add("Price must be greater than zero");
 
         return (errors.Count == 0, errors);
     }

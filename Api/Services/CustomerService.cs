@@ -1,13 +1,19 @@
+using Api.Contracts.Common;
+using Api.Contracts.Requests;
+using Api.Contracts.Responses;
+using Api.DTOs;
 using Api.Models;
 using Api.Repositories.Interfaces;
 using Api.Services.Interfaces;
+using AutoMapper;
 
 namespace Api.Services;
 
-public class CustomerService(ICustomerRepository customerRepository, ILogger<CustomerService> logger) : ICustomerService
+public class CustomerService(ICustomerRepository customerRepository, ILogger<CustomerService> logger, IMapper mapper) : ICustomerService
 {
     private readonly ICustomerRepository _customerRepository = customerRepository;
     private readonly ILogger<CustomerService> _logger = logger;
+    private readonly IMapper _mapper = mapper;
 
     public async Task<ApiResponse<CustomerDto?>> GetByIdAsync(long id)
     {
@@ -22,7 +28,7 @@ public class CustomerService(ICustomerRepository customerRepository, ILogger<Cus
                 return ApiResponse<CustomerDto?>.ErrorResult($"Customer {id} not found");
 
 
-            var customerDto = MapToDto(customer);
+            var customerDto = _mapper.Map<CustomerDto>(customer);
             return ApiResponse<CustomerDto?>.SuccessResult(customerDto);
         }
         catch (Exception ex)
@@ -44,7 +50,7 @@ public class CustomerService(ICustomerRepository customerRepository, ILogger<Cus
 
             var customers = await _customerRepository.SearchByNameAsync(request.Term, request.Limit, request.Offset);
 
-            var customerDtos = customers.Select(MapToDto).ToList();
+            var customerDtos = _mapper.Map<List<CustomerDto>>(customers);
 
             var response = new CustomerSearchResponse
             {
@@ -78,9 +84,9 @@ public class CustomerService(ICustomerRepository customerRepository, ILogger<Cus
                 return ApiResponse<CustomerDto>.ErrorResult("Validation failed", Errors);
 
 
-            var customer = MapToEntity(customerDto);
+            var customer = _mapper.Map<Customer>(customerDto);
             var createdCustomer = await _customerRepository.CreateAsync(customer);
-            var resultDto = MapToDto(createdCustomer);
+            var resultDto = _mapper.Map<CustomerDto>(createdCustomer);
 
             _logger.LogInformation("Customer created: {CustomerId}", createdCustomer.Id);
             return ApiResponse<CustomerDto>.SuccessResult(resultDto, "Customer created successfully");
@@ -104,7 +110,7 @@ public class CustomerService(ICustomerRepository customerRepository, ILogger<Cus
                 return ApiResponse<CustomerDto?>.ErrorResult("Validation failed", Errors);
 
 
-            var customer = MapToEntity(customerDto);
+            var customer = _mapper.Map<Customer>(customerDto);
             customer.Id = id;
 
             var updatedCustomer = await _customerRepository.UpdateAsync(customer);
@@ -113,7 +119,7 @@ public class CustomerService(ICustomerRepository customerRepository, ILogger<Cus
                 return ApiResponse<CustomerDto?>.ErrorResult($"Customer {id} not found");
 
 
-            var resultDto = MapToDto(updatedCustomer);
+            var resultDto = _mapper.Map<CustomerDto>(updatedCustomer);
             _logger.LogInformation("Customer updated: {CustomerId}", id);
             return ApiResponse<CustomerDto?>.SuccessResult(resultDto, "Customer updated successfully");
         }
@@ -147,28 +153,7 @@ public class CustomerService(ICustomerRepository customerRepository, ILogger<Cus
         }
     }
 
-    private static CustomerDto MapToDto(Customer customer)
-    {
-        return new CustomerDto
-        {
-            Id = customer.Id,
-            Name = customer.Name,
-            Document = customer.Document,
-            Status = customer.Status,
-            CreatedAt = customer.CreatedAt
-        };
-    }
 
-    private static Customer MapToEntity(CustomerDto customerDto)
-    {
-        return new Customer
-        {
-            Id = customerDto.Id,
-            Name = customerDto.Name,
-            Document = customerDto.Document,
-            Status = customerDto.Status
-        };
-    }
 
     private static (bool IsValid, List<string> Errors) ValidateCustomer(CustomerDto customer)
     {

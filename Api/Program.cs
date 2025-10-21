@@ -1,6 +1,7 @@
 using Api.Data;
 using Api.Repositories.Interfaces;
 using Api.Services.Interfaces;
+using Api.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
@@ -33,26 +34,18 @@ try
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
     if (!string.IsNullOrWhiteSpace(connectionString))
     {
-        // Registrar DbContext apontando para PostgreSQL
-        builder.Services.AddDbContext<AppDbContext>(options =>
-            options.UseNpgsql(connectionString));
-
-        // Health check PostgreSQL
-        builder.Services.AddHealthChecks()
-               .AddNpgSql(connectionString, name: "PostgreSQL");
-    }
-    else
-    {
-        Log.Warning("Connection string 'DefaultConnection' não encontrada. DbContext e HealthCheck não registrados.");
+        builder.Services.AddDatabase(connectionString);
+        builder.Services.AddDatabaseHealthChecks(connectionString);
     }
 
     // Registrar repositórios
-    builder.Services.AddScoped<ICustomerRepository, Api.Repositories.CustomerRepository>();
-    builder.Services.AddScoped<IProductRepository, Api.Repositories.ProductRepository>();
+    builder.Services.AddRepositories();
 
     // Registrar serviços
-    builder.Services.AddScoped<ICustomerService, Api.Services.CustomerService>();
-    builder.Services.AddScoped<IProductService, Api.Services.ProductService>();
+    builder.Services.AddApplicationServices();
+
+    // AutoMapper: registra profiles do assembly atual (genérico para evitar ambiguidade)
+    builder.Services.AddAutoMapperProfiles();
 
     // Controllers, Swagger e CORS
     builder.Services.AddControllers();

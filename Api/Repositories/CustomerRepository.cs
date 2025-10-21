@@ -1,42 +1,23 @@
+using Api.Data;
 using Api.Models;
 using Api.Repositories.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
 namespace Api.Repositories;
 
-public class CustomerRepository(IConfiguration configuration, ILogger<CustomerRepository> logger) : ICustomerRepository
+public class CustomerRepository(AppDbContext context, ILogger<CustomerRepository> logger) : ICustomerRepository
 {
-    private readonly string _connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found");
+    private readonly AppDbContext _context = context;
     private readonly ILogger<CustomerRepository> _logger = logger;
 
     public async Task<Customer?> GetByIdAsync(long id)
     {
         try
         {
-            using var connection = new NpgsqlConnection(_connectionString);
-            await connection.OpenAsync();
-
-            using var command = new NpgsqlCommand(
-                "SELECT id, name, document, status, created_at FROM customers WHERE id = @id",
-                connection);
-            command.Parameters.AddWithValue("id", id);
-
-            using var reader = await command.ExecuteReaderAsync();
-
-            if (await reader.ReadAsync())
-            {
-                return new Customer
-                {
-                    Id = reader.GetInt64(0),
-                    Name = reader.GetString(1),
-                    Document = reader.IsDBNull(2) ? null : reader.GetString(2),
-                    Status = reader.GetBoolean(3),
-                    CreatedAt = reader.GetDateTime(4)
-                };
-            }
-
-            return null;
+            return await _context.Customers
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == id);
         }
         catch (Exception ex)
         {
@@ -49,31 +30,11 @@ public class CustomerRepository(IConfiguration configuration, ILogger<CustomerRe
     {
         try
         {
-            using var connection = new NpgsqlConnection(_connectionString);
-            await connection.OpenAsync();
-
-            using var command = new NpgsqlCommand(
-                "SELECT * FROM search_customers_by_name(@term, @limit, @offset)",
-                connection);
-            command.Parameters.AddWithValue("term", term);
-            command.Parameters.AddWithValue("limit", limit);
-            command.Parameters.AddWithValue("offset", offset);
-
-            var customers = new List<Customer>();
-            using var reader = await command.ExecuteReaderAsync();
-
-            while (await reader.ReadAsync())
-            {
-                customers.Add(new Customer
-                {
-                    Id = reader.GetInt64(0),
-                    Name = reader.GetString(1),
-                    Document = reader.IsDBNull(2) ? null : reader.GetString(2),
-                    Status = reader.GetBoolean(3)
-                });
-            }
-
-            return customers;
+            return await _context.Customers
+                .FromSqlRaw(
+                    "SELECT * FROM search_customers_by_name({0}, {1}, {2})",
+                    term, limit, offset)
+                .ToListAsync();
         }
         catch (Exception ex)
         {
@@ -86,25 +47,8 @@ public class CustomerRepository(IConfiguration configuration, ILogger<CustomerRe
     {
         try
         {
-            using var connection = new NpgsqlConnection(_connectionString);
-            await connection.OpenAsync();
-
-            using var command = new NpgsqlCommand(
-                @"INSERT INTO customers (name, document, status) 
-                  VALUES (@name, @document, @status) 
-                  RETURNING id, created_at",
-                connection);
-            command.Parameters.AddWithValue("name", customer.Name);
-            command.Parameters.AddWithValue("document", (object?)customer.Document ?? DBNull.Value);
-            command.Parameters.AddWithValue("status", customer.Status);
-
-            using var reader = await command.ExecuteReaderAsync();
-            if (await reader.ReadAsync())
-            {
-                customer.Id = reader.GetInt64(0);
-                customer.CreatedAt = reader.GetDateTime(1);
-            }
-
+            _context.Customers.Add(customer);
+            await _context.SaveChangesAsync();
             return customer;
         }
         catch (Exception ex)
@@ -118,21 +62,16 @@ public class CustomerRepository(IConfiguration configuration, ILogger<CustomerRe
     {
         try
         {
-            using var connection = new NpgsqlConnection(_connectionString);
-            await connection.OpenAsync();
+            var existing = await _context.Customers.FindAsync(customer.Id);
+            if (existing == null)
+                return null;
 
-            using var command = new NpgsqlCommand(
-                @"UPDATE customers 
-                  SET name = @name, document = @document, status = 0 
-                  WHERE id = @id",
-                connection);
-            command.Parameters.AddWithValue("id", customer.Id);
-            command.Parameters.AddWithValue("name", customer.Name);
-            command.Parameters.AddWithValue("document", (object?)customer.Document ?? DBNull.Value);
-            command.Parameters.AddWithValue("status", true);
+            existing.Name = customer.Name;
+            existing.Document = customer.Document;
+            existing.Active = customer.Active;
 
-            var rowsAffected = await command.ExecuteNonQueryAsync();
-            return rowsAffected > 0 ? customer : null;
+            await _context.SaveChangesAsync();
+            return existing;
         }
         catch (Exception ex)
         {
@@ -145,15 +84,13 @@ public class CustomerRepository(IConfiguration configuration, ILogger<CustomerRe
     {
         try
         {
-            using var connection = new NpgsqlConnection(_connectionString);
-            await connection.OpenAsync();
+            var customer = await _context.Customers.FindAsync(id);
+            if (customer == null)
+                return false;
 
-            using var command = new NpgsqlCommand(
-                "DELETE FROM customers WHERE id = @id",
-                connection);
-            command.Parameters.AddWithValue("id", id);
-            var rowsAffected = await command.ExecuteNonQueryAsync();
-            return rowsAffected > 0;
+            _context.Customers.Remove(customer);
+            await _context.SaveChangesAsync();
+            return true;
         }
         catch (Exception ex)
         {

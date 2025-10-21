@@ -1,14 +1,12 @@
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
 EXPOSE 80
-EXPOSE 443
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
-COPY ["MonitorService/MonitorService.csproj", "MonitorService/"]
-RUN dotnet restore "MonitorService/MonitorService.csproj"
+COPY ["MonitorService.csproj", "./"]
+RUN dotnet restore "MonitorService.csproj"
 COPY . .
-WORKDIR "/src/MonitorService"
 RUN dotnet build "MonitorService.csproj" -c Release -o /app/build
 
 FROM build AS publish

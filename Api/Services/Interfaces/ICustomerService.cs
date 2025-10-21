@@ -1,4 +1,6 @@
-using Api.Models;
+using Api.Contracts.Requests;
+using Api.Contracts.Responses;
+using Api.DTOs;
 
 namespace Api.Services.Interfaces;
 

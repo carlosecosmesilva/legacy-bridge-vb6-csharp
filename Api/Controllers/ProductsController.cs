@@ -1,4 +1,5 @@
-using Api.Models;
+using Api.DTOs;
+using Api.Extensions;
 using Api.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -6,16 +7,10 @@ namespace Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class ProductsController : ControllerBase
+public class ProductsController(IProductService productService, ILogger<ProductsController> logger) : ControllerBase
 {
-    private readonly IProductService _productService;
-    private readonly ILogger<ProductsController> _logger;
-
-    public ProductsController(IProductService productService, ILogger<ProductsController> logger)
-    {
-        _productService = productService;
-        _logger = logger;
-    }
+    private readonly IProductService _productService = productService;
+    private readonly ILogger<ProductsController> _logger = logger;
 
     /// <summary>
     /// Retorna todos os produtos (ativos e inativos)
@@ -27,13 +22,7 @@ public class ProductsController : ControllerBase
         try
         {
             var result = await _productService.GetAllAsync();
-
-            if (!result.Success)
-            {
-                return StatusCode(500, result);
-            }
-
-            return Ok(result);
+            return result.ToActionResult(); 
         }
         catch (Exception ex)
         {
@@ -51,15 +40,7 @@ public class ProductsController : ControllerBase
     public async Task<IActionResult> GetById(long id)
     {
         var result = await _productService.GetByIdAsync(id);
-
-        if (!result.Success)
-        {
-            return result.Message?.Contains("not found") == true
-                ? NotFound(result)
-                : BadRequest(result);
-        }
-
-        return Ok(result);
+        return result.ToActionResult();
     }
 
     /// <summary>
@@ -71,13 +52,7 @@ public class ProductsController : ControllerBase
     public async Task<IActionResult> Create([FromBody] ProductDto productDto)
     {
         var result = await _productService.CreateAsync(productDto);
-
-        if (!result.Success)
-        {
-            return BadRequest(result);
-        }
-
-        return CreatedAtAction(nameof(GetById), new { id = result.Data!.Id }, result);
+        return result.ToActionResult();
     }
 
     /// <summary>
@@ -90,15 +65,7 @@ public class ProductsController : ControllerBase
     public async Task<IActionResult> Update(long id, [FromBody] ProductDto productDto)
     {
         var result = await _productService.UpdateAsync(id, productDto);
-
-        if (!result.Success)
-        {
-            return result.Message?.Contains("not found") == true
-                ? NotFound(result)
-                : BadRequest(result);
-        }
-
-        return Ok(result);
+        return result.ToActionResult();
     }
 
     /// <summary>
@@ -110,15 +77,7 @@ public class ProductsController : ControllerBase
     public async Task<IActionResult> Delete(long id)
     {
         var result = await _productService.DeleteAsync(id);
-
-        if (!result.Success)
-        {
-            return result.Message?.Contains("not found") == true
-                ? NotFound(result)
-                : BadRequest(result);
-        }
-
-        return Ok(result);
+        return result.ToActionResult();
     }
 }
 
