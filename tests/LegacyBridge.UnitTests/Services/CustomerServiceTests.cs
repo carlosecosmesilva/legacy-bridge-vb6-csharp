@@ -1,16 +1,16 @@
-using Api.Contracts.Requests;
-using Api.DTOs;
-using Api.Models;
-using Api.Repositories.Interfaces;
-using Api.Services;
+using Moq;
+using Xunit;
+using AutoMapper;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
-using Moq;
-using AutoMapper;
-using Api.Mappings;
-using Xunit;
+using LegacyBridge.Domain.Interfaces.Repositories;
+using LegacyBridge.Application.Services;
+using LegacyBridge.Application.Mappings;
+using LegacyBridge.Domain.Entities;
+using LegacyBridge.Application.DTOs;
+using LegacyBridge.Application.Contracts.Requests;
 
-namespace Api.Tests.Services;
+namespace LegacyBridge.UnitTests.Services;
 
 public class CustomerServiceTests
 {
