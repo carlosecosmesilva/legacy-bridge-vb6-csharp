@@ -3,145 +3,286 @@
 Modernização que integra um sistema legado VB6 com uma API moderna em C# e banco PostgreSQL.
 
 -   Integração gradual: VB6 consome a API via HTTP (MSXML).
--   Backend em ASP.NET Core com camadas de Controllers, Services e Repositories.
--   Persistência no PostgreSQL (inclui função de busca com ILIKE).
+-   Backend em ASP.NET Core seguindo **Clean Architecture**.
+-   Separação em camadas: Domain, Application, Infrastructure e API.
+-   Persistência no PostgreSQL com Entity Framework Core.
 -   Serviço de monitoramento (Windows Service) baseado em .NET Worker.
+
+## 🏗️ Arquitetura
+
+Este projeto segue os princípios da **Clean Architecture** (Robert C. Martin), organizando o código em camadas com responsabilidades bem definidas:
+
+### Camadas da Aplicação
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   LegacyBridge.Api                      │
+│              (Controllers, Middleware)                  │
+└────────────────────┬────────────────────────────────────┘
+                     │
+        ┌────────────┴────────────┐
+        ▼                         ▼
+┌──────────────────┐      ┌──────────────────────┐
+│ Application      │      │  Infrastructure      │
+│ (Services, DTOs) │      │ (Repositories, EF)   │
+└────────┬─────────┘      └──────────┬───────────┘
+         │                           │
+         └────────────┬──────────────┘
+                      ▼
+              ┌──────────────┐
+              │   Domain     │
+              │  (Entities)  │
+              └──────────────┘
+```
+
+#### 📦 LegacyBridge.Domain (Núcleo)
+
+-   **Responsabilidade**: Entidades de negócio e interfaces de repositórios
+-   **Dependências**: Nenhuma (projeto puro .NET)
+-   **Conteúdo**:
+    -   `Entities/`: Customer, Product
+    -   `Interfaces/Repositories/`: ICustomerRepository, IProductRepository
+
+#### 🎯 LegacyBridge.Application (Casos de Uso)
+
+-   **Responsabilidade**: Lógica de aplicação, serviços e DTOs
+-   **Dependências**: Apenas Domain
+-   **Conteúdo**:
+    -   `Services/`: CustomerService, ProductService
+    -   `Interfaces/Services/`: ICustomerService, IProductService
+    -   `DTOs/`: CustomerDto, ProductDto
+    -   `Contracts/`: Requests, Responses, Common
+    -   `Mappings/`: AutoMapper Profiles
+
+#### 🔧 LegacyBridge.Infrastructure (Implementação)
+
+-   **Responsabilidade**: Acesso a dados e recursos externos
+-   **Dependências**: Domain, Application
+-   **Conteúdo**:
+    -   `Repositories/`: Implementações concretas dos repositórios
+    -   `Persistence/AppDbContext`: Configuração do EF Core
+    -   `Persistence/Configurations/`: Entity Type Configurations
+    -   `Persistence/Migrations/`: Migrations do EF Core
+
+#### 🌐 LegacyBridge.Api (Apresentação)
+
+-   **Responsabilidade**: Endpoints HTTP, middleware e configuração
+-   **Dependências**: Application, Infrastructure
+-   **Conteúdo**:
+    -   `Controllers/`: CustomersController, ProductsController
+    -   `Middleware/`: ExceptionHandlingMiddleware
+    -   `Extensions/`: ServiceCollectionExtensions
+    -   `Program.cs`: Configuração e inicialização
+
+### Princípios Aplicados
+
+✅ **Separation of Concerns**: Cada camada tem responsabilidade única  
+✅ **Dependency Inversion**: Camadas externas dependem de abstrações  
+✅ **Testability**: Fácil mockar dependências e testar isoladamente  
+✅ **Maintainability**: Mudanças em uma camada não afetam outras  
+✅ **Framework Independence**: Domain não depende de frameworks externos
+
+## 🛠️ Tecnologias Utilizadas
+
+### Backend (.NET 8)
+
+-   **ASP.NET Core 8.0** - Framework web
+-   **Entity Framework Core 9.0** - ORM para acesso a dados
+-   **AutoMapper 12.0** - Mapeamento objeto-objeto
+-   **Serilog** - Logging estruturado
+-   **Swashbuckle (Swagger)** - Documentação de API
+-   **Npgsql** - Driver PostgreSQL para .NET
+
+### Testes
+
+-   **xUnit** - Framework de testes
+-   **Moq** - Biblioteca de mocking
+-   **FluentAssertions** - Assertions fluentes
+
+### Banco de Dados
+
+-   **PostgreSQL 15+** - Banco de dados relacional
+-   **pg_trgm** - Extensão para busca full-text
+
+### DevOps & Infraestrutura
+
+-   **Docker** - Containerização
+-   **Docker Compose** - Orquestração de containers
+-   **Health Checks** - Monitoramento de saúde
+
+### Legacy
+
+-   **Visual Basic 6.0** - Sistema legado
+-   **MSXML6** - Cliente HTTP para VB6
+
+## ✨ Funcionalidades Principais
+
+### API REST
+
+-   ✅ CRUD completo de Clientes e Produtos
+-   ✅ Busca de clientes com função PostgreSQL otimizada (ILIKE)
+-   ✅ Validação de dados em múltiplas camadas
+-   ✅ Tratamento centralizado de exceções
+-   ✅ Logging estruturado com Serilog
+-   ✅ Health checks integrados
+-   ✅ Documentação automática com Swagger/OpenAPI
+-   ✅ Suporte a CORS para integração frontend
+
+### Arquitetura
+
+-   ✅ Clean Architecture (Domain, Application, Infrastructure, API)
+-   ✅ Dependency Injection nativo do ASP.NET Core
+-   ✅ Repository Pattern
+-   ✅ Service Layer Pattern
+-   ✅ AutoMapper para transformação de objetos
+-   ✅ Entity Framework Core com Code-First
+-   ✅ Migrations automáticas de banco de dados
+
+### Qualidade de Código
+
+-   ✅ Testes unitários com xUnit
+-   ✅ Mocking com Moq
+-   ✅ Assertions fluentes com FluentAssertions
+-   ✅ Separação clara de responsabilidades
+-   ✅ Código testável e manutenível
+
+### Integração Legacy
+
+-   ✅ Endpoints compatíveis com VB6
+-   ✅ Respostas padronizadas (ApiResponse)
+-   ✅ Tratamento de erros amigável
+-   ✅ Conversão automática de tipos
+
+### DevOps Ready
+
+-   ✅ Dockerfiles otimizados
+-   ✅ Docker Compose para ambiente completo
+-   ✅ Health checks para orquestração
+-   ✅ Logs centralizados em arquivo
+-   ✅ Configuração por ambiente (appsettings)
 
 ## Estrutura do projeto
 
 ```
 legacy-bridge-vb6-csharp/
-│
-├── Api/                                # API REST em ASP.NET Core 8.0
-│   ├── Controllers/                    # Endpoints REST
-│   │   ├── CustomersController.cs
-│   │   └── ProductsController.cs
-│   ├── Services/                       # Camada de negócio
+├── server/
+│   ├── LegacyBridge.Domain/
+│   │   ├── Entities/
+│   │   │   ├── Customer.cs
+│   │   │   └── Product.cs
 │   │   ├── Interfaces/
-│   │   │   ├── ICustomerService.cs
-│   │   │   └── IProductService.cs
-│   │   ├── CustomerService.cs
-│   │   └── ProductService.cs
-│   ├── Repositories/                   # Acesso a dados (EF Core)
+│   │   │   └── Repositories/
+│   │   │       ├── ICustomerRepository.cs
+│   │   │       └── IProductRepository.cs
+│   │   └── Common/
+│   │
+│   ├── LegacyBridge.Application/
+│   │   ├── DTOs/
+│   │   │   ├── CustomerDto.cs
+│   │   │   └── ProductDto.cs
+│   │   ├── Contracts/
+│   │   │   ├── Common/
+│   │   │   ├── Requests/
+│   │   │   └── Responses/
 │   │   ├── Interfaces/
-│   │   │   ├── ICustomerRepository.cs
-│   │   │   └── IProductRepository.cs
-│   │   ├── CustomerRepository.cs
-│   │   └── ProductRepository.cs
-│   ├── Data/
-│   │   └── AppDbContext.cs
-│   ├── Models/
-│   │   ├── Customer.cs
-│   │   └── Product.cs
-│   ├── DTOs/
-│   │   ├── CustomerDto.cs
-│   │   └── ProductDto.cs
-│   ├── Contracts/                      # Contratos de I/O (requests/responses)
-│   │   ├── Common/
-│   │   │   └── PaginationInfo.cs
-│   │   ├── Requests/
-│   │   │   └── CustomerSearchRequest.cs
-│   │   └── Responses/
-│   │       ├── ApiResponse.cs
-│   │       └── CustomerSearchResponse.cs
-│   ├── Mappings/                       # Perfis AutoMapper
-│   │   ├── CustomerProfile.cs
-│   │   └── ProductProfile.cs
-│   ├── Extensions/                     # Extensões/bootstrapping
-│   │   ├── ApiResponseExtensions.cs
-│   │   ├── InfrastructureExtensions.cs
-│   │   ├── MappingExtensions.cs
-│   │   └── ServiceCollectionExtensions.cs
-│   ├── Middleware/
-│   │   └── ExceptionHandlingMiddleware.cs
-│   ├── Migrations/                     # EF Core migrations
-│   │   ├── 20251021015403_InitialCreate.cs
-│   │   ├── 20251021015403_InitialCreate.Designer.cs
-│   │   └── AppDbContextModelSnapshot.cs
-│   ├── Properties/
-│   │   └── launchSettings.json
-│   ├── Logs/                           # Saída de logs em runtime
-│   ├── Program.cs
-│   ├── appsettings.json
-│   ├── Api.csproj
-│   └── Dockerfile
+│   │   │   └── Services/
+│   │   │       ├── ICustomerService.cs
+│   │   │       └── IProductService.cs
+│   │   ├── Services/
+│   │   │   ├── CustomerService.cs
+│   │   │   └── ProductService.cs
+│   │   ├── Mappings/
+│   │   │   ├── CustomerProfile.cs
+│   │   │   └── ProductProfile.cs
+│   │   └── Extensions/
+│   │       └── MappingExtensions.cs
+│   │
+│   ├── LegacyBridge.Infrastructure/
+│   │   ├── Repositories/
+│   │   │   ├── CustomerRepository.cs
+│   │   │   └── ProductRepository.cs
+│   │   ├── Persistence/
+│   │   │   ├── AppDbContext.cs
+│   │   │   ├── Configurations/
+│   │   │   └── Migrations/
+│   │   └── Extensions/
+│   │       └── InfrastructureExtensions.cs
+│   │
+│   └── LegacyBridge.Api/
+│       ├── Controllers/
+│       │   ├── CustomersController.cs
+│       │   └── ProductsController.cs
+│       ├── Middleware/
+│       │   └── ExceptionHandlingMiddleware.cs
+│       ├── Extensions/
+│       │   ├── ServiceCollectionExtensions.cs
+│       │   └── ApiResponseExtensions.cs
+│       ├── Properties/
+│       ├── Logs/
+│       ├── Program.cs
+│       ├── appsettings.json
+│       └── Dockerfile
 │
-├── Api.Tests/                          # Testes de unidade da API (xUnit)
-│   ├── Extensions/
-│   │   └── ApiResponseExtensionsTests.cs
-│   ├── Services/
-│   │   ├── CustomerServiceTests.cs
-│   │   └── ProductServiceTests.cs
-│   ├── Api.Tests.csproj
-│   └── (bin/ obj/)                     # Artefatos de build
+├── tests/
+│   └── LegacyBridge.UnitTests/
+│       ├── Services/
+│       ├── Extensions/
+│       └── Repositories/
 │
-├── MonitorService/                     # Windows Service (.NET 8 Worker)
-│   ├── Services/
-│   │   ├── CircuitBreakerService.cs
-│   │   ├── ConfigurationService.cs
-│   │   ├── FileEventLogger.cs
-│   │   ├── FileEventProcessor.cs
-│   │   ├── FileWatcherService.cs
-│   │   ├── HealthCheckService.cs
-│   │   ├── MonitorBackgroundService.cs
-│   │   └── RetryService.cs
-│   ├── Interfaces/
-│   │   ├── IConfigurationService.cs
-│   │   ├── IFileEventLogger.cs
-│   │   ├── IFileEventProcessor.cs
-│   │   ├── IFileWatcherService.cs
-│   │   └── IHealthCheckService.cs
-│   ├── Models/
-│   │   ├── FileEvent.cs
-│   │   ├── FileWatcherConfiguration.cs
-│   │   ├── RetryPolicy.cs
-│   │   └── ServiceHealth.cs
-│   ├── Logs/
-│   ├── Program.cs
-│   ├── appsettings.json
-│   ├── MonitorService.csproj
-│   └── Dockerfile
+├── services/
+│   └── MonitorService/
 │
-├── Db/                                 # Scripts SQL (PostgreSQL)
-│   ├── legacy/
-│   │   ├── 001_create_database.sql
-│   │   ├── 002_create_customers_table.sql
-│   │   ├── 003_create_products_table.sql
-│   │   ├── 004_create_search_function.sql
-│   │   └── 005_inserts_schema.sql
-│   └── Dump e Backup/
-│       ├── dump_legacy_bridge_db.sql
-│       └── legacy_bridge_db.backup
+├── legacy/
+│   └── VB6/
 │
-├── docs/                               # Documentação do projeto
+├── Db/
+├── docs/
 │   ├── arquitetura.md
 │   ├── ci-cd.md
-│   └── runbook.md
+│   ├── runbook.md
+│   └── migracao-clean-architecture.md (este documento)
 │
-├── VB6/                                # Aplicação legado em Visual Basic 6
-│   ├── Forms/
-│   ├── Modules/
-│   ├── LegacyBridge.vbp
-│   ├── LegacyBridge.vbw
-│   └── MSSCCPRJ.SCC
-│
-├── docker-compose.yml                  # Orquestração de containers
-├── LegacyBridge.sln                    # Solution do Visual Studio
-├── LICENSE
-└── README.md
+├── docker-compose.yml
+├── LegacyBridge.sln
+├── .gitignore
+├── README.md
+└── LICENSE
 ```
 
-### Novas pastas e convenções (resumo)
+### Organização de Pastas
 
--   Api/Contracts
-    -   Common: tipos utilitários compartilhados (ex.: paginação)
-    -   Requests/Responses: contratos de entrada/saída para endpoints e serviços
--   Api/DTOs: objetos de transferência usados pelos Controllers/Services
--   Api/Mappings: perfis do AutoMapper e configurações de mapeamento
--   Api/Extensions: métodos de extensão para composição (DI, Pipeline, Responses)
--   Api/Migrations: histórico de migrações do EF Core
--   Api.Tests: testes de unidade e utilitários de teste
--   Db/legacy: scripts de schema e dados baseados no legado
+#### 📂 `/server` - Aplicação Backend
+
+Contém todos os projetos da API organizados em camadas Clean Architecture:
+
+-   **LegacyBridge.Domain**: Camada de domínio (entidades e interfaces)
+-   **LegacyBridge.Application**: Camada de aplicação (serviços, DTOs, contratos)
+-   **LegacyBridge.Infrastructure**: Camada de infraestrutura (repositórios, EF Core)
+-   **LegacyBridge.Api**: Camada de apresentação (controllers, middleware)
+
+#### 🧪 `/tests` - Testes Automatizados
+
+-   **LegacyBridge.UnitTests**: Testes unitários com xUnit, Moq e FluentAssertions
+
+#### ⚙️ `/services` - Serviços Auxiliares
+
+-   **MonitorService**: Windows Service para monitoramento de arquivos
+
+#### 🗄️ `/legacy` - Sistema Legado
+
+-   **VB6**: Código-fonte da aplicação Visual Basic 6.0
+
+#### 📊 `/Db` - Scripts de Banco de Dados
+
+-   Scripts SQL para criação do schema e dados iniciais
+-   Dumps e backups do PostgreSQL
+
+#### 📖 `/docs` - Documentação
+
+-   `arquitetura.md`: Documentação detalhada da arquitetura
+-   `ci-cd.md`: Pipeline de integração e deploy
+-   `runbook.md`: Guia operacional
+-   `migracao-clean-architecture.md`: Guia de migração para Clean Architecture
 
 ## Requisitos
 
@@ -189,7 +330,7 @@ psql -U postgres -d legacy_bridge_db -f "Db\005_inserts_schema.sql"
 
 4. **Configure a connection string**
 
-Edite `Api\appsettings.json`:
+Edite `server\LegacyBridge.Api\appsettings.json`:
 
 ```json
 {
@@ -209,7 +350,7 @@ Edite `Api\appsettings.json`:
 
 **Para executar apenas a API:**
 
--   Clique direito em `Api` → **Set as Startup Project**
+-   Clique direito em `LegacyBridge.Api` → **Set as Startup Project**
 -   Pressione `F5` para debug ou `Ctrl+F5` sem debug
 -   Acesse: http://localhost:5000 ou https://localhost:5001
 
@@ -222,8 +363,21 @@ Edite `Api\appsettings.json`:
 
 -   Clique direito na Solution → **Configure Startup Projects**
 -   Selecione **Multiple startup projects**
--   Defina ambos como **Start**
+-   Defina `LegacyBridge.Api` e `MonitorService` como **Start**
 -   Pressione `F5`
+
+7. **Executar Testes**
+
+```powershell
+# Todos os testes
+dotnet test
+
+# Apenas testes unitários
+dotnet test tests\LegacyBridge.UnitTests
+
+# Com coverage
+dotnet test /p:CollectCoverage=true
+```
 
 ### Opção 2: .NET CLI (Linha de Comando)
 
@@ -241,14 +395,20 @@ dotnet restore
 
 ```powershell
 # Apenas API
-dotnet run --project Api
+dotnet run --project server\LegacyBridge.Api
 
 # Apenas MonitorService
-dotnet run --project MonitorService
+dotnet run --project services\MonitorService
+
+# Build de toda a solution
+dotnet build LegacyBridge.sln
+
+# Executar testes
+dotnet test LegacyBridge.sln
 
 # Ambos (em terminais separados)
-Start-Process powershell -ArgumentList "dotnet run --project Api"
-Start-Process powershell -ArgumentList "dotnet run --project MonitorService"
+Start-Process powershell -ArgumentList "dotnet run --project server\LegacyBridge.Api"
+Start-Process powershell -ArgumentList "dotnet run --project services\MonitorService"
 ```
 
 4. **Acesse a API**
@@ -651,48 +811,69 @@ Npgsql.NpgsqlException: Connection refused
 docker compose build --no-cache
 ```
 
-### Porta em uso
-
-**Problema**: Port already in use
-
-**Solução**: Altere a porta no `docker-compose.yml` ou `launchSettings.json`:
-
-```yaml
-ports:
-    - "5001:80" # Usar porta 5001 ao invés de 5000
-```
-
-### MonitorService não processa arquivos
-
-**Problema**: Arquivos não são detectados
-
-**Solução**: Verifique permissões das pastas e se o caminho existe:
-
-```powershell
-# Criar diretórios
-New-Item -ItemType Directory -Force -Path "C:\Integration\Drop"
-New-Item -ItemType Directory -Force -Path "C:\Integration\Archive"
-New-Item -ItemType Directory -Force -Path "C:\Integration\Error"
-```
-
 ## 📚 Documentação Adicional
 
--   [docs/arquitetura.md](docs/arquitetura.md) - Diagramas e decisões arquiteturais
--   [docs/runbook.md](docs/runbook.md) - Guia operacional e sustentação
--   [docs/ci-cd.md](docs/ci-cd.md) - Pipeline de integração e deploy
+-   **[Arquitetura](docs/arquitetura.md)** - Documentação detalhada da arquitetura do sistema
+-   **[CI/CD](docs/ci-cd.md)** - Pipeline de integração e deploy contínuo
+-   **[Runbook](docs/runbook.md)** - Guia operacional e troubleshooting
+
+## 🤝 Contribuindo
+
+Contribuições são bem-vindas! Para contribuir:
+
+1. Fork o projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/MinhaFeature`)
+3. Commit suas mudanças (`git commit -m 'Adiciona MinhaFeature'`)
+4. Push para a branch (`git push origin feature/MinhaFeature`)
+5. Abra um Pull Request
+
+### Padrões de Código
+
+-   Siga os princípios SOLID
+-   Mantenha a separação de camadas Clean Architecture
+-   Adicione testes unitários para novas funcionalidades
+-   Use convenções de nomenclatura C# (.NET)
+-   Documente APIs públicas com XML comments
+
+### Commits
+
+Use commits semânticos:
+
+-   `feat:` nova funcionalidade
+-   `fix:` correção de bug
+-   `docs:` alterações na documentação
+-   `refactor:` refatoração de código
+-   `test:` adição ou modificação de testes
+-   `chore:` tarefas de manutenção
+
+## 📝 Roadmap
+
+-   [ ] Implementar autenticação JWT
+-   [ ] Adicionar testes de integração
+-   [ ] Implementar CQRS com MediatR
+-   [ ] Adicionar validação com FluentValidation
+-   [ ] Implementar cache com Redis
+-   [ ] Adicionar monitoramento com Application Insights
+-   [ ] API Versioning
+-   [ ] GraphQL endpoint
+-   [ ] Suporte a múltiplos idiomas (i18n)
+-   [ ] Migração completa do VB6 para .NET
 
 ## 📄 Licença
 
-Este projeto está licenciado sob a **Licença MIT** - veja o arquivo [LICENSE](LICENSE) para detalhes.
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
 
-A licença MIT permite:
+## 👥 Autores
 
--   ✅ Uso comercial
--   ✅ Modificação
--   ✅ Distribuição
--   ✅ Uso privado
+-   **Carlos Silva** - _Desenvolvimento inicial_ - [@carlosecosmesilva](https://github.com/carlosecosmesilva)
 
-Mantendo apenas:
+## 🙏 Agradecimentos
 
--   ℹ️ Atribuição de copyright
--   ℹ️ Isenção de garantias
+-   Comunidade .NET por ferramentas e bibliotecas excelentes
+-   Equipe do PostgreSQL pelo banco de dados robusto
+-   Robert C. Martin pelos princípios de Clean Architecture
+-   Todos os contribuidores que ajudaram a melhorar este projeto
+
+---
+
+**Feito usando .NET 8 e Clean Architecture**
