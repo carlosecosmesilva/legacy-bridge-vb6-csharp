@@ -1,8 +1,10 @@
 using AutoMapper;
+using Microsoft.Extensions.Logging;
 using LegacyBridge.Application.Contracts.Requests;
 using LegacyBridge.Application.Contracts.Responses;
 using LegacyBridge.Application.DTOs;
 using LegacyBridge.Application.Interfaces;
+using LegacyBridge.Application.Contracts.Common;
 using LegacyBridge.Domain.Entities;
 using LegacyBridge.Domain.Interfaces.Repositories;
 

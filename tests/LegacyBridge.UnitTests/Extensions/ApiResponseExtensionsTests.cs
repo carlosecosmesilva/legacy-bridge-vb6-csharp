@@ -1,6 +1,8 @@
 ﻿using Xunit;
 using FluentAssertions;
+using Microsoft.AspNetCore.Mvc;
 using LegacyBridge.Application.Contracts.Responses;
+using LegacyBridge.Api.Extensions;
 
 namespace LegacyBridge.UnitTests.Extensions;
 

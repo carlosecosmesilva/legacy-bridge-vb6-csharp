@@ -1,5 +1,5 @@
 using AutoMapper;
-using LegacyBridge.Application.Contracts.Requests;
+using Microsoft.Extensions.Logging;
 using LegacyBridge.Application.Contracts.Responses;
 using LegacyBridge.Application.DTOs;
 using LegacyBridge.Application.Interfaces;

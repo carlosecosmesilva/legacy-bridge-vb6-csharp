@@ -1,8 +1,8 @@
 using Serilog;
-using Api.Extensions;
 using Microsoft.EntityFrameworkCore;
 using LegacyBridge.Infrastructure.Extensions;
 using LegacyBridge.Api.Extensions;
+using LegacyBridge.Application.Extensions;
 
 var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? Environments.Production;
 
@@ -95,7 +95,7 @@ try
     }
 
     app.UseSerilogRequestLogging();
-    app.UseMiddleware<Api.Middleware.ExceptionHandlingMiddleware>();
+    app.UseMiddleware<LegacyBridge.Api.Middleware.ExceptionHandlingMiddleware>();
     app.UseCors();
     app.UseAuthorization();
     app.MapControllers();
