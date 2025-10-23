@@ -13,6 +13,17 @@ public class ProductsController(IProductService productService, ILogger<Products
     private readonly ILogger<ProductsController> _logger = logger;
 
     /// <summary>
+    /// Lista produtos (atalho para GetAll)
+    /// </summary>
+    /// <returns>Lista de Produtos</returns>
+    [HttpGet]
+    public async Task<IActionResult> Index()
+    {
+        var result = await _productService.GetAllAsync();
+        return result.ToActionResult();
+    }
+
+    /// <summary>
     /// Retorna todos os produtos (ativos e inativos)
     /// </summary>
     /// <returns>Lista de Produtos</returns>
@@ -47,7 +58,7 @@ public class ProductsController(IProductService productService, ILogger<Products
     /// Cria um novo produto
     /// </summary>
     /// <param name="productDto">Dados do produto a ser criado</param>
-    /// <returns>Resultado da cria��o do produto</returns>
+    /// <returns>Resultado da criação do produto</returns>
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] ProductDto productDto)
     {
@@ -60,7 +71,7 @@ public class ProductsController(IProductService productService, ILogger<Products
     /// </summary>
     /// <param name="id">Id do produto a ser atualizado</param>
     /// <param name="productDto">Dados do produto a serem atualizados</param>
-    /// <returns>Resultado da atualiza��o do produto</returns>
+    /// <returns>Resultado da atualização do produto</returns>
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(long id, [FromBody] ProductDto productDto)
     {
@@ -72,7 +83,7 @@ public class ProductsController(IProductService productService, ILogger<Products
     /// Remove um produto por ID
     /// </summary>
     /// <param name="id">Id do produto a ser removido</param>
-    /// <returns>Resultado da remo��o do produto</returns>
+    /// <returns>Resultado da remoção do produto</returns>
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(long id)
     {
