@@ -3,6 +3,7 @@ version: '3.8'
 services:
   db:
     image: postgres:15
+    container_name: legacy-bridge-db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -24,37 +25,47 @@ services:
       retries: 5
 
   api:
-    build: ./Api
+    build:
+      context: .
+      dockerfile: server/LegacyBridge.Api/Dockerfile
+    container_name: legacy-bridge-api
     ports:
-      - "5000:8080"
+      - "5000:80"
+      - "5001:443"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:8080
+      - ASPNETCORE_URLS=http://+:80
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Username=postgres;Password=postgres;Database=legacy_bridge_db
     depends_on:
       db:
         condition: service_healthy
     volumes:
-      - ./Api/Logs:/app/Logs
+      - ./server/LegacyBridge.Api/Logs:/app/Logs
     networks:
       - legacy-network
+    restart: unless-stopped
 
   monitor:
-    build: ./MonitorService
+    build:
+      context: .
+      dockerfile: services/MonitorService/Dockerfile
+    container_name: legacy-bridge-monitor
     environment:
       - DOTNET_ENVIRONMENT=Development
       - FileWatcher__MonitorPath=/app/monitor
       - FileWatcher__LogPath=/app/logs
     volumes:
-      - ./MonitorService/Logs:/app/logs
+      - ./services/MonitorService/Logs:/app/logs
       - ./monitor:/app/monitor
     networks:
       - legacy-network
     depends_on:
       - api
+    restart: unless-stopped
 
 volumes:
   postgres_data:
+    driver: local
 
 networks:
   legacy-network:
