@@ -817,6 +817,22 @@ docker compose build --no-cache
 -   **[CI/CD](docs/ci-cd.md)** - Pipeline de integração e deploy contínuo
 -   **[Runbook](docs/runbook.md)** - Guia operacional e troubleshooting
 
+## 🚦 CI/CD
+
+Este repositório utiliza GitHub Actions para validação contínua:
+
+-   Build e testes unitários (.NET 8) com cache de NuGet e cobertura de código
+-   Smoke tests de integração via Docker Compose (PostgreSQL + API)
+-   Build das imagens Docker da API e do MonitorService na branch `main`
+
+Workflows:
+
+-   `.github/workflows/ci.yml`
+    -   Jobs:
+        -   `build_and_test`: restaura, compila e executa `dotnet test` com cobertura
+        -   `integration_smoke`: sobe `db` e `api` via docker compose, valida `/health` e endpoints básicos
+        -   `docker_build` (main): build das imagens Docker (push opcional via secrets)
+
 ## 🤝 Contribuindo
 
 Contribuições são bem-vindas! Para contribuir:
