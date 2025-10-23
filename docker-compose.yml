@@ -12,10 +12,10 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./Db/legacy/002_create_customers_table.sql:/docker-entrypoint-initdb.d/002_create_customers_table.sql:ro
-      - ./Db/legacy/003_create_products_table.sql:/docker-entrypoint-initdb.d/003_create_products_table.sql:ro
-      - ./Db/legacy/004_create_search_function.sql:/docker-entrypoint-initdb.d/004_create_search_function.sql:ro
-      - ./Db/legacy/005_inserts_schema.sql:/docker-entrypoint-initdb.d/005_inserts_schema.sql:ro
+      - ./Db/002_create_customers_table.sql:/docker-entrypoint-initdb.d/002_create_customers_table.sql
+      - ./Db/003_create_products_table.sql:/docker-entrypoint-initdb.d/003_create_products_table.sql
+      - ./Db/004_create_search_function.sql:/docker-entrypoint-initdb.d/004_create_search_function.sql
+      - ./Db/005_inserts_schema.sql:/docker-entrypoint-initdb.d/005_inserts_schema.sql
     networks:
       - legacy-network
     healthcheck:
