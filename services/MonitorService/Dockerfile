@@ -18,7 +18,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 
 # Copiar binários publicados
-COPY --from=publish /app/publish .
+COPY --from=build /app/publish .
 
 # Criar diretórios necessários
 RUN mkdir -p /app/monitor /app/logs
